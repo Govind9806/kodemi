@@ -1,0 +1,86 @@
+server:
+  port: ${SERVER_PORT}
+
+spring:
+  application:
+    name: admin-service
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: ${MAIL_SMTP_SSL_TRUST}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+  instance:
+    prefer-ip-address: true
+
+dynamodb:
+  region: ${AWS_REGION}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false
+
+aws:
+  s3:
+    region: ${AWS_REGION}
+    bucket-name: ${S3_BUCKET_NAME}
+
+feign:
+  httpclient:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 3000
+        readTimeout: 5000
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+    instances:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+    instances:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s

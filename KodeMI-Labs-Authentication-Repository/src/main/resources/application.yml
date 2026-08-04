@@ -1,0 +1,80 @@
+spring:
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
+
+  application:
+    name: auth-service
+ 
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            trust: ${MAIL_SMTP_SSL_TRUST}
+ 
+server:
+  port: ${SERVER_PORT}
+ 
+dynamodb:
+  region: ${AWS_REGION}
+ 
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false
+ 
+jwt:
+  secret: ${JWT_SECRET}
+ 
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+    instances:
+      default:
+        baseConfig: default
+      user-service:
+        baseConfig: default
+      payment-service:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+    instances:
+      default:
+        baseConfig: default
+      user-service:
+        baseConfig: default
+      payment-service:
+        baseConfig: default

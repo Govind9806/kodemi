@@ -1,0 +1,45 @@
+{
+    "CallerReference": "kodemi-dist-recordings-20260727",
+    "Comment": "KodeMI Live Classes Service - Session Recordings Delivery",
+    "Enabled": true,
+    "Origins": {
+        "Quantity": 1,
+        "Items": [
+            {
+                "Id": "S3-kodemilabs-recordings-732304",
+                "DomainName": "kodemilabs-recordings-732304.s3.ap-south-1.amazonaws.com",
+                "OriginAccessControlId": "E1YRDHURHUKL72",
+                "S3OriginConfig": {
+                    "OriginAccessIdentity": ""
+                }
+            }
+        ]
+    },
+    "DefaultCacheBehavior": {
+        "TargetOriginId": "S3-kodemilabs-recordings-732304",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "AllowedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"],
+            "CachedMethods": {
+                "Quantity": 2,
+                "Items": ["GET", "HEAD"]
+            }
+        },
+        "ForwardedValues": {
+            "QueryString": false,
+            "Cookies": { "Forward": "none" }
+        },
+        "TrustedKeyGroups": {
+            "Enabled": true,
+            "Quantity": 1,
+            "Items": ["3e06bd70-8020-431b-9c6f-c91c03420800"]
+        },
+        "MinTTL": 0,
+        "DefaultTTL": 86400,
+        "MaxTTL": 31536000,
+        "Compress": true
+    },
+    "PriceClass": "PriceClass_200",
+    "HttpVersion": "http2"
+}

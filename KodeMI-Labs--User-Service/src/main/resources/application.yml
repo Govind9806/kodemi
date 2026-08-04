@@ -1,0 +1,97 @@
+server:
+  port: ${SERVER_PORT:8081}
+  tomcat:
+    max-http-form-post-size: 1GB
+    max-swallow-size: 1GB
+    connection-timeout: 600000
+
+spring:
+  application:
+    name: user-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
+  servlet:
+    multipart:
+      max-file-size: 1GB
+      max-request-size: 1GB
+  mvc:
+    async:
+      request-timeout: 600000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:k8Jd9wQ2x+4aB3d1FJtL8vZ5X0yQ1V7n2gHqM4sP1tE=}
+
+encryption:
+  secret: ${ENCRYPTION_SECRET:testkey123456789}
+
+dynamodb:
+  region: ${AWS_REGION:ap-south-1}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID:test-access-key}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret-key}
+    region:
+      static: ${AWS_REGION:ap-south-1}
+    stack:
+      auto: false
+    cloudfront:
+      domain: ${CLOUDFRONT_PROFILE_DOMAIN:${CLOUDFRONT_DOMAIN:}}
+      key-pair-id: ${CLOUDFRONT_KEY_PAIR_ID:}
+      private-key-path: ${CLOUDFRONT_PRIVATE_KEY_PATH:}
+
+aws:
+  s3:
+    region: ${AWS_REGION:ap-south-1}
+    bucket-name: ${S3_BUCKET_NAME:profile-picture-kodemi-732304}
+    presigned-url-expiry-minutes: ${S3_URL_EXPIRY_MINUTES:60}
+
+feign:
+  httpclient:
+    enabled: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+    instances:
+      admin-service:
+        baseConfig: default
+      auth-service:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+    instances:
+      admin-service:
+        baseConfig: default
+      auth-service:
+        baseConfig: default
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [traceId: %X{traceId:-N/A}] - %msg%n"

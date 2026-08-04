@@ -1,0 +1,83 @@
+server:
+  port: ${SERVER_PORT:8088}
+
+spring:
+  application:
+    name: payment-service
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+
+jwt:
+  secret: ${JWT_SECRET:test-jwt-secret-key-that-is-long-enough-32-bytes}
+
+razorpay:
+  key:
+    id: ${RAZORPAY_KEY_ID:rzp_test_key}
+    secret: ${RAZORPAY_KEY_SECRET:rzp_test_secret}
+
+wallet:
+  max-recharge-amount: 5000000
+
+dynamodb:
+  region: ${AWS_REGION:ap-south-1}
+  endpoint: ${AWS_DYNAMODB_ENDPOINT:}
+  table-prefix: payment-service
+
+app:
+  env: ${APP_ENV:dev}
+
+resilience4j:
+  ratelimiter:
+    instances:
+      standardEndpoint:
+        limitForPeriod: 5
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+      paymentEndpoint:
+        limitForPeriod: 2
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+    instances:
+      default:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+    instances:
+      default:
+        baseConfig: default
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID:test-key}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:test-secret}
+    region:
+      static: ${AWS_REGION:ap-south-1}
+    stack:
+      auto: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    prefer-ip-address: true
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [traceId: %X{traceId:-N/A}] - %msg%n"

@@ -1,0 +1,33 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+eureka:
+  client:
+    service-url:
+      defaultzone: http://localhost:8761/eureka
+
+jwt:
+  secret: k8Jd9wQ2x+4aB3d1FJtL8vZ5X0yQ1V7n2gHqM4sP1tE=
+
+dynamodb:
+  region: us-east-1
+
+cloud:
+  aws:
+    s3:
+      region: us-east-1
+      bucket-name: test-bucket
+      presigned-url-expiry-minutes: 60
+    cloudfront:
+      domain: ""
+      key-pair-id: ""
+      private-key-path: ""
+
+ffmpeg:
+  path: ffmpeg
+
+ffprobe:
+  path: ffprobe

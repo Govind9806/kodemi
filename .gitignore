@@ -1,0 +1,35 @@
+# Environment variables
+.env
+.env*
+
+# Maven build outputs
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle build outputs
+.gradle/
+**/build/
+
+# IDE files
+.idea/
+**/.idea/
+*.iml
+**/*.iml
+.vscode/
+**/.vscode/
+.settings/
+.project
+.classpath
+
+# Node / Web dependencies
+node_modules/
+**/node_modules/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+*.log

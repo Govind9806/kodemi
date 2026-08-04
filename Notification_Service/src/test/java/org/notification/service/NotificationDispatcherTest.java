@@ -1,0 +1,170 @@
+package org.notification.service;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.notification.model.Notification;
+import org.notification.model.enums.NotificationChannel;
+import org.notification.model.enums.NotificationType;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class NotificationDispatcherTest {
+
+    @Mock
+    private EmailSenderService emailSenderService;
+
+    @Mock
+    private SmsSenderService smsSenderService;
+
+    @Mock
+    private FcmPushService fcmPushService;
+
+    @Mock
+    private SseConnectionManager sseConnectionManager;
+
+    @InjectMocks
+    private NotificationDispatcher dispatcher;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "emailEnabled", true);
+        org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "smsEnabled", true);
+    }
+
+    @Test
+    void testDispatchEmail() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.EMAIL);
+        n.setRecipientEmail("test@example.com");
+        n.setTitle("Title");
+        n.setMessage("Message");
+
+        dispatcher.dispatch(n);
+
+        verify(emailSenderService, times(1)).sendEmail("test@example.com", "Title", "Message");
+        verifyNoInteractions(smsSenderService);
+    }
+
+    @Test
+    void testDispatchSms() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.SMS);
+        n.setRecipientPhone("+919000000000");
+        n.setTitle("Alert");
+        n.setMessage("Message");
+
+        dispatcher.dispatch(n);
+
+        verify(smsSenderService, times(1)).sendSms("+919000000000", "Alert: Message");
+        verifyNoInteractions(emailSenderService);
+    }
+
+    @Test
+    void testDispatchInApp() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.IN_APP);
+        n.setUserId("u1");
+        n.setType(NotificationType.GENERAL);
+
+        dispatcher.dispatch(n);
+
+        verify(sseConnectionManager).sendNotification(eq("u1"), any());
+        verify(fcmPushService).sendPushNotification(eq("u1"), any(), any(), any(), any());
+    }
+
+    @Test
+    void testDispatchInApp_exceptionsHandledGracefully() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.IN_APP);
+        n.setUserId("u1");
+
+        doThrow(new RuntimeException("SSE fail")).when(sseConnectionManager).sendNotification(any(), any());
+        doThrow(new RuntimeException("FCM fail")).when(fcmPushService).sendPushNotification(any(), any(), any(), any(), any());
+
+        assertDoesNotThrow(() -> dispatcher.dispatch(n));
+    }
+
+    @Test
+    void testDispatchEmail_ProviderDisabled() {
+        org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "emailEnabled", false);
+        try {
+            Notification n = new Notification();
+            n.setChannel(NotificationChannel.EMAIL);
+            
+            assertThrows(org.notification.exception.ProviderDisabledException.class, () -> dispatcher.dispatch(n));
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "emailEnabled", true);
+        }
+    }
+
+    @Test
+    void testDispatchEmail_MissingEmail() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.EMAIL);
+        n.setRecipientEmail("");
+
+        assertThrows(org.notification.exception.PermanentFailureException.class, () -> dispatcher.dispatch(n));
+    }
+
+    @Test
+    void testDispatchEmail_InvalidEmailException() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.EMAIL);
+        n.setRecipientEmail("bad-email");
+        n.setTitle("Title");
+        n.setMessage("Msg");
+
+        doThrow(new RuntimeException("invalid address")).when(emailSenderService).sendEmail(any(), any(), any());
+
+        assertThrows(org.notification.exception.PermanentFailureException.class, () -> dispatcher.dispatch(n));
+    }
+
+    @Test
+    void testDispatchEmail_GenericException() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.EMAIL);
+        n.setRecipientEmail("good@example.com");
+        n.setTitle("Title");
+        n.setMessage("Msg");
+
+        doThrow(new RuntimeException("SMTP Server Down")).when(emailSenderService).sendEmail(any(), any(), any());
+
+        assertThrows(RuntimeException.class, () -> dispatcher.dispatch(n));
+    }
+
+    @Test
+    void testDispatchSms_ProviderDisabled() {
+        org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "smsEnabled", false);
+        try {
+            Notification n = new Notification();
+            n.setChannel(NotificationChannel.SMS);
+            
+            assertThrows(org.notification.exception.ProviderDisabledException.class, () -> dispatcher.dispatch(n));
+        } finally {
+            org.springframework.test.util.ReflectionTestUtils.setField(org.notification.config.ProviderConfigValidator.class, "smsEnabled", true);
+        }
+    }
+
+    @Test
+    void testDispatchSms_MissingPhone() {
+        Notification n = new Notification();
+        n.setChannel(NotificationChannel.SMS);
+        n.setRecipientPhone(null);
+
+        assertThrows(org.notification.exception.PermanentFailureException.class, () -> dispatcher.dispatch(n));
+    }
+
+    @Test
+    void testDispatchUnknownChannel() {
+        Notification n = new Notification();
+        n.setChannel(null);
+        assertThrows(NullPointerException.class, () -> dispatcher.dispatch(n));
+    }
+}
+

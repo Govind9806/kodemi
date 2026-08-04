@@ -1,0 +1,74 @@
+server:
+  port: ${SERVER_PORT}
+
+
+spring:
+  application:
+    name: course-service
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  servlet:
+    multipart:
+      max-file-size: 4096MB
+      max-request-size: 4096MB
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connecttimeout: 3000
+            readtimeout: 5000
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingwindowsize: 10
+        failureratethreshold: 50
+        waitdurationinopenstate: 10s
+  retry:
+    configs:
+      default:
+        maxattempts: 3
+        waitduration: 1s
+
+eureka:
+  client:
+    service-url:
+      defaultzone: ${EUREKA_URL}
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET}
+
+dynamodb:
+  region: ${AWS_REGION}
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY_ID}
+      secret-key: ${AWS_SECRET_ACCESS_KEY}
+    region:
+      static: ${AWS_REGION}
+    stack:
+      auto: false
+    s3:
+      region: ${AWS_REGION}
+      bucket-name: ${S3_BUCKET_NAME}
+      presigned-url-expiry-minutes: ${S3_URL_EXPIRY_MINUTES}
+    cloudfront:
+      domain: ${CLOUDFRONT_DOMAIN}
+      key-pair-id: ${CLOUDFRONT_KEY_PAIR_ID}
+      private-key-path: ${CLOUDFRONT_PRIVATE_KEY_PATH}
+
+ffmpeg:
+  path: ${FFMPEG_PATH}
+
+ffprobe:
+  path: ${FFPROBE_PATH}

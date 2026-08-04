@@ -1,0 +1,19 @@
+package com.example.enrollment_progress_service.dto.notification;
+
+import lombok.Builder;
+import lombok.Data;
+import java.util.List;
+import java.util.Map;
+
+@Data
+@Builder
+public class NotificationRequest {
+    private String userId;
+    private String title;
+    private String message;
+    private NotificationType type;
+    private List<NotificationChannel> channels;
+    private String referenceId;
+    private String referenceType;
+    private Map<String, Object> metadata;
+}

@@ -1,0 +1,78 @@
+server:
+  port: ${SERVER_PORT}
+
+spring:
+  application:
+    name: notification-service
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      client:
+        config:
+          default:
+            connectTimeout: 3000
+            readTimeout: 5000
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          ssl:
+            trust: ${MAIL_SMTP_SSL_TRUST}
+          auth: true
+          starttls:
+            enable: true
+
+aws:
+  region: ${AWS_REGION}
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID}
+  auth-token: ${TWILIO_AUTH_TOKEN}
+  phone-number: ${TWILIO_PHONE_NUMBER}
+
+notification:
+  scheduler:
+    enabled: true
+    fixed-delay-ms: 60000
+    batch-size: 50
+  recurring:
+    timezone: Asia/Kolkata
+    morning-time: "09:00"
+    evening-time: "18:00"
+  retry:
+    max-retries: 3
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL}
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+    instances:
+      user-service:
+        baseConfig: default
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+    instances:
+      user-service:
+        baseConfig: default

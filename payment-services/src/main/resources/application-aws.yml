@@ -1,0 +1,14 @@
+# AWS Configuration - DynamoDB
+aws:
+  region: us-east-1
+  dynamodb:
+    endpoint: https://dynamodb.us-east-1.amazonaws.com
+    table-prefix: payment-service
+    
+# Spring profiles
+spring:
+  application:
+    name: payment-service
+    
+# AWS SDK Configuration
+aws.dynamodb.default.table-prefix: payment-service

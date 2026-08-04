@@ -1,0 +1,13 @@
+server:
+  port: ${SERVER_PORT:8761}
+
+spring:
+  application:
+    name: server-registry
+
+eureka:
+  instance:
+    hostname: ${EUREKA_HOSTNAME:localhost}
+  client:
+    register-with-eureka: false
+    fetch-registry: false

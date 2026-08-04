@@ -1,0 +1,164 @@
+═══════════════════════════════════════════════════════════════════════════
+          EXPECTED STARTUP LOG - AWS DYNAMODB INTEGRATION
+═══════════════════════════════════════════════════════════════════════════
+
+This is what you will see when the application starts:
+
+---
+
+2026-07-28 15:45:30.123  INFO 12345 --- [main] c.e.p.PaymentServiceApplication
+       : Starting PaymentServiceApplication v0.0.1-SNAPSHOT
+       
+2026-07-28 15:45:30.456  INFO 12345 --- [main] c.e.p.PaymentServiceApplication
+       : The following 1 profile is active: "default"
+
+2026-07-28 15:45:32.789  INFO 12345 --- [main] c.e.p.config.DynamoDbConfig
+       : Initializing DynamoDBMapper for region: us-east-1
+       
+2026-07-28 15:45:33.012  INFO 12345 --- [main] c.e.p.config.DynamoDbConfig
+       : Creating AmazonDynamoDB client for region: us-east-1
+       
+2026-07-28 15:45:33.234  INFO 12345 --- [main] c.e.p.config.DynamoDbConfig
+       : Creating DynamoDbClient (AWS SDK v2) for region: us-east-1
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║       AWS DynamoDB Initialization & Health Check                          ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+2026-07-28 15:45:33.456  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Checking AWS connectivity...
+       
+2026-07-28 15:45:33.678  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✅ AWS Connectivity: SUCCESS
+       :    - Credentials: Valid
+       :    - Service: Reachable
+       :    - Region: Accessible
+
+2026-07-28 15:45:34.123  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Verifying DynamoDB tables...
+       
+2026-07-28 15:45:34.345  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Creating table 'Wallet'...
+       
+2026-07-28 15:45:35.567  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'Wallet' created successfully
+       
+2026-07-28 15:45:35.789  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : Waiting for table 'Wallet' to be ACTIVE (current: CREATING)
+       
+2026-07-28 15:45:37.901  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'Wallet' is now ACTIVE
+       
+2026-07-28 15:45:38.123  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Creating table 'WalletTransaction'...
+       
+2026-07-28 15:45:39.345  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'WalletTransaction' created successfully
+       
+2026-07-28 15:45:39.567  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : Waiting for table 'WalletTransaction' to be ACTIVE (current: CREATING)
+       
+2026-07-28 15:45:41.789  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'WalletTransaction' is now ACTIVE
+       
+2026-07-28 15:45:42.901  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Creating table 'Payment'...
+       
+2026-07-28 15:45:44.123  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'Payment' created successfully
+       
+2026-07-28 15:45:44.345  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : Waiting for table 'Payment' to be ACTIVE (current: CREATING)
+       
+2026-07-28 15:45:46.567  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✓ Table 'Payment' is now ACTIVE
+       
+2026-07-28 15:45:46.789  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✅ Table Verification: 3/3 ACTIVE
+       :    Wallet - Status: ACTIVE (Items: 0)
+       :      └─ GSI 'walletType-index': ACTIVE
+       :    WalletTransaction - Status: ACTIVE (Items: 0)
+       :      └─ GSI 'userId-createdAt-index': ACTIVE
+       :    Payment - Status: ACTIVE (Items: 0)
+       :      └─ GSI 'userId-status-index': ACTIVE
+
+2026-07-28 15:45:47.901  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : → Testing data responsiveness...
+       
+2026-07-28 15:45:48.123  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       :    Wallet - Response: 45ms, Items: 0, Scanned: 0
+       
+2026-07-28 15:45:48.234  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       :    WalletTransaction - Response: 38ms, Items: 0, Scanned: 0
+       
+2026-07-28 15:45:48.345  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       :    Payment - Response: 52ms, Items: 0, Scanned: 0
+       
+2026-07-28 15:45:48.456  INFO 12345 --- [main] c.e.p.s.AwsInitializationService
+       : ✅ Data Responsiveness: ALL TABLES RESPONSIVE
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ✅ AWS INITIALIZATION COMPLETE - SYSTEM READY TO SERVE                   ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+2026-07-28 15:45:49.567  INFO 12345 --- [main] o.s.b.w.e.tomcat.TomcatWebServer
+       : Tomcat started on port(s): 8080 (http) with context path ''
+       
+2026-07-28 15:45:49.678  INFO 12345 --- [main] c.e.p.PaymentServiceApplication
+       : Started PaymentServiceApplication in 19.234 seconds (process running
+       for 20.123)
+
+2026-07-28 15:45:50.789  INFO 12345 --- [main] c.e.p.PaymentServiceApplication
+       : ✅ Application is running and ready to accept requests!
+
+═══════════════════════════════════════════════════════════════════════════
+
+Now you can test the application:
+
+1. Test AWS Health:
+   curl http://localhost:8080/api/v1/health/aws
+   
+   Expected Response:
+   {
+     "status": "UP",
+     "service": "AWS DynamoDB",
+     "isConnected": true,
+     "activeTableCount": 3,
+     "responseTime": 45,
+     "lastChecked": 1720000000000
+   }
+
+2. Test DynamoDB Tables:
+   curl http://localhost:8080/api/v1/health/dynamodb
+   
+   Expected Response:
+   {
+     "status": "UP",
+     "activeTables": 3,
+     "responseTimeMs": 125
+   }
+
+3. Test Revenue Analytics API (requires JWT token):
+   curl -X GET "http://localhost:8080/api/v1/trainer-wallet/revenue-analytics" \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN"
+   
+   Expected Response:
+   {
+     "trainerId": "trainer-001",
+     "totalCoursesSold": 45,
+     "totalResourcesSold": 28,
+     "totalRevenue": 45000.00,
+     "balance": 25000.00,
+     "pendingPayout": 10000.00,
+     "totalWithdrawn": 10000.00,
+     "courseRevenue": [...],
+     "resourceRevenue": [...],
+     "monthlyBreakdown": [...]
+   }
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ If you see the message "AWS INITIALIZATION COMPLETE", the integration
+   is working correctly and the application is ready!
+
+═══════════════════════════════════════════════════════════════════════════

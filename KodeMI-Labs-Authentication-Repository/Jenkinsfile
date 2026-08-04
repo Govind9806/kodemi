@@ -1,0 +1,139 @@
+pipeline {
+
+
+agent any
+
+options {
+    disableConcurrentBuilds()
+    timeout(time: 1, unit: 'HOURS')
+}
+
+environment {
+    SONAR_PROJECT_KEY  = "Authentication_Dev"
+    SONAR_PROJECT_NAME = "Authentication_Dev"
+}
+
+stages {
+
+    stage('Clean Workspace') {
+        steps {
+            cleanWs()
+        }
+    }
+
+    stage('Checkout') {
+        steps {
+            checkout([
+                $class: 'GitSCM',
+                branches: [[name: '*/Development']],
+                userRemoteConfigs: [[
+                    credentialsId: 'github',
+                    url: 'https://github.com/KodeMI-Labs/KodeMI-Labs-Authentication-Repository.git'
+                ]],
+                extensions: [
+                    [$class: 'CloneOption', shallow: true, depth: 1]
+                ]
+            ])
+        }
+    }
+
+    stage('Debug Workspace') {
+        steps {
+            bat '''
+            echo ===== WORKSPACE DEBUG =====
+            cd
+            dir
+            dir /s pom.xml
+            '''
+        }
+    }
+
+    stage('Build & Test') {
+        steps {
+            bat '''
+            call mvnw.cmd clean verify ^
+            -Deureka.client.enabled=false ^
+            -Dspring.cloud.discovery.enabled=false
+            '''
+        }
+    }
+
+    stage('Check JaCoCo Report') {
+        steps {
+            bat '''
+            if exist target\\site\\jacoco\\jacoco.xml (
+                echo JaCoCo XML Found
+                dir target\\site\\jacoco
+            ) else (
+                echo ERROR: jacoco.xml NOT FOUND
+                exit /b 1
+            )
+            '''
+        }
+    }
+
+    stage('SonarQube Analysis') {
+        steps {
+            withSonarQubeEnv('SonarQube2') {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    bat '''
+                    call mvnw.cmd sonar:sonar ^
+                    -Dsonar.projectKey=%SONAR_PROJECT_KEY% ^
+                    -Dsonar.projectName=%SONAR_PROJECT_NAME% ^
+                    -Dsonar.login=%SONAR_TOKEN% ^
+                    -Dsonar.java.binaries=target/classes ^
+                    -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+                    '''
+                }
+            }
+        }
+    }
+
+    stage('Quality Gate') {
+        steps {
+            timeout(time: 5, unit: 'MINUTES') {
+                waitForQualityGate abortPipeline: false
+            }
+        }
+    }
+
+    stage('OWASP Dependency Check') {
+        steps {
+            withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_KEY')]) {
+
+                bat '''
+                echo ===== RUNNING OWASP CHECK =====
+                '''
+
+                dependencyCheck(
+                    additionalArguments: "--nvdApiKey ${NVD_KEY} --format CSV --out . --disableOssIndex",
+                    odcInstallation: 'Default'
+                )
+            }
+
+            dependencyCheckPublisher pattern: 'dependency-check-report.csv'
+        }
+    }
+
+    stage('Archive Reports') {
+        steps {
+            archiveArtifacts artifacts: 'dependency-check-report.csv',
+                             fingerprint: true
+        }
+    }
+}
+
+post {
+    success {
+        echo 'SUCCESS: Build + Tests + Sonar + OWASP completed'
+    }
+    failure {
+        echo 'FAILED: Check logs'
+    }
+    always {
+        echo 'Pipeline execution finished'
+    }
+}
+
+
+}

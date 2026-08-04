@@ -1,0 +1,18 @@
+package com.example.enrollment_progress_service.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LearnerProfileDTO {
+    private String username;
+    private String email;
+    private String fullName;
+    private String phoneNumber;
+    private String profilePictureUrl;
+}

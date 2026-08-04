@@ -1,0 +1,6 @@
+{
+    "CallerReference": "kodemi-cf-key-20260629095228",
+    "Name": "kodemi-signed-url-key",
+    "EncodedKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA6pTvXiP0cwiVRZaNvWDw\n/1P1wYq7D6xtUMoigBO6FuPl+NWL3Nw641fE0iHwpD0sJgWYw+0iG2gihccJnkf5\nB0bIwvW3zyPQ/U2ewgMPkCkyllpU2Q1O9aN3GsmK8stfLaZscNzsc3VMQhKs903m\nOacGmD9U8EQkMZgvwr+M0WP0L3llUEonypuLacIYN1fQkkwfDUKrB2rzdSxgRIPe\nPEEEhBjsxuCFioHJdRjbba/JSOuAGeistLRNzK8/7dVIKA0d4fLmgVF49DlGfTT7\niyLKQt8DycMAe0TDNDwUICaH7RLtSYRIL2IaCu3VBsKmF0e3JjHOsWe/yDuxFMPR\newIDAQAB\n-----END PUBLIC KEY-----\n",
+    "Comment": "Public key for KodeMI course video signed URLs"
+}

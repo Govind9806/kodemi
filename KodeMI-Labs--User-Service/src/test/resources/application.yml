@@ -1,0 +1,49 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: false
+
+eureka:
+  client:
+    enabled: false
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: k8Jd9wQ2x+4aB3d1FJtL8vZ5X0yQ1V7n2gHqM4sP1tE=
+
+encryption:
+  secret: testkey123456789
+
+dynamodb:
+  region: ap-south-1
+
+cloud:
+  aws:
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key
+    region:
+      static: ap-south-1
+    stack:
+      auto: false
+    cloudfront:
+      domain: ""
+      key-pair-id: ""
+      private-key-path: ""
+
+aws:
+  s3:
+    region: ap-south-1
+    bucket-name: profile-picture-kodemi-732304
+    presigned-url-expiry-minutes: 60

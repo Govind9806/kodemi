@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 1, unit: 'HOURS')
+    }
+    environment {
+        JAVA_HOME = '/opt/java/openjdk'
+        MAVEN_HOME = '/usr/share/maven'
+        PATH = "/opt/java/openjdk/bin:/usr/share/maven/bin:/usr/bin:/bin:/usr/local/bin"
+        SONAR_PROJECT_KEY  = 'Course_Service'
+        SONAR_PROJECT_NAME = 'Course_Service'
+    }
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Trigger Info') {
+            steps {
+                echo "Build triggered by: ${currentBuild.getBuildCauses()}"
+            }
+        }
+        stage('Debug Workspace') {
+            steps {
+                sh '''
+                    echo "===== WORKSPACE DEBUG ====="
+                    pwd
+                    ls -la
+                    find . -name pom.xml
+                '''
+            }
+        }
+        stage('Build and Test') {
+            steps {
+                sh '''
+                    echo "===== BUILD AND RUN TESTS ====="
+                    mvn clean verify \
+                    -Deureka.client.enabled=false \
+                    -Dspring.cloud.discovery.enabled=false
+                '''
+            }
+        }
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonarscanner') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            echo "===== SONAR ANALYSIS ====="
+                            mvn sonar:sonar \
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                            -Dsonar.projectName=$SONAR_PROJECT_NAME \
+                            -Dsonar.login=$SONAR_TOKEN
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo 'SUCCESS: Build + Sonar completed'
+        }
+        failure {
+            echo 'FAILED: Check logs'
+        }
+        always {
+            echo 'Pipeline execution finished'
+        }
+    }
+}
