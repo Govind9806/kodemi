@@ -1,7 +1,0 @@
-{
-  "Name": "kodemi-s3-oac",
-  "Description": "OAC for KodeMI S3 bucket",
-  "SigningProtocol": "sigv4",
-  "SigningBehavior": "always",
-  "OriginAccessControlOriginType": "s3"
-}
