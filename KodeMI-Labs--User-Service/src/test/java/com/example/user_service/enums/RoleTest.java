@@ -12,9 +12,9 @@ class RoleTest {
     void testEnumValues() {
         Role[] roles = Role.values();
 
-        assertEquals(8, roles.length);
+        assertEquals(9, roles.length);
         assertArrayEquals(
-                new Role[]{Role.LEARNER, Role.SUPER_ADMIN, Role.INSTRUCTOR, Role.TRAINER, Role.ADMIN, Role.USER_ADMIN, Role.COURSE_ADMIN, Role.GAME_ADMIN},
+                new Role[]{Role.LEARNER, Role.SUPER_ADMIN, Role.INSTRUCTOR, Role.TRAINER, Role.ADMIN, Role.USER_ADMIN, Role.COURSE_ADMIN, Role.GAME_ADMIN,Role.CONTENT_ADMIN},
                 roles
         );
     }
@@ -29,6 +29,7 @@ class RoleTest {
         assertEquals(Role.USER_ADMIN, Role.valueOf("USER_ADMIN"));
         assertEquals(Role.COURSE_ADMIN, Role.valueOf("COURSE_ADMIN"));
         assertEquals(Role.GAME_ADMIN, Role.valueOf("GAME_ADMIN"));
+        assertEquals(Role.CONTENT_ADMIN, Role.valueOf("CONTENT_ADMIN"));
     }
 
     @Test
@@ -47,6 +48,7 @@ class RoleTest {
         assertEquals("ADMIN", Role.ADMIN.name());
         assertEquals("USER_ADMIN", Role.USER_ADMIN.name());
         assertEquals("COURSE_ADMIN", Role.COURSE_ADMIN.name());
+        assertEquals("CONTENT_ADMIN", Role.CONTENT_ADMIN.name());
     }
 
     @Test
@@ -58,5 +60,7 @@ class RoleTest {
         assertEquals(4, Role.ADMIN.ordinal());
         assertEquals(5, Role.USER_ADMIN.ordinal());
         assertEquals(6, Role.COURSE_ADMIN.ordinal());
+        assertEquals(7, Role.GAME_ADMIN.ordinal());
+        assertEquals(8, Role.CONTENT_ADMIN.ordinal());
     }
 }
