@@ -1,0 +1,31 @@
+server:
+  port: ${SERVER_PORT:8085}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: cms-service
+            uri: ${CMS_SERVICE_URL:http://localhost:8087}
+            predicates:
+              - Path=/admin/blogs/**, /banner/**, /blog/**, /contact-us/**, /courses/**, /course-rating-summary/**, /faq/**, /instructor-rating-summary/**, /instructor-review/**, /learner/preference/**, /media/**, /notes/**, /preference/**, /quiz/**, /quiz-analytics/**, /quiz-answer/**, /quiz-attempt/**, /quiz-category/**, /quiz-option/**, /quiz-question/**, /quiz-student-result/**, /seo/**, /static-pages/**, /testimonial/**, /trainer/blogs/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://15.206.227.255:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+jwt:
+  secret: ${JWT_SECRET:k8Jd9wQ2x+4aB3d1FJtL8vZ5X0yQ1V7n2gHqM4sP1tE=}
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
