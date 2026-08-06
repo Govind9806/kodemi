@@ -6,5 +6,6 @@ public enum AdminRole {
     COURSE_ADMIN,
     PAYMENT_ADMIN,
     GAME_ADMIN,
+    CONTENT_ADMIN
 
 }
