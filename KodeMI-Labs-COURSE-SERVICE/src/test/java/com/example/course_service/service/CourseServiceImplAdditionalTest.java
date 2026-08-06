@@ -1,35 +1,36 @@
 package com.example.course_service.service;
 
-import com.example.course_service.dto.request.MultipartUploadInitRequest;
-import com.example.course_service.dto.response.MultipartUploadInitResponse;
-import com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO;
-import com.example.course_service.dto.request.AbortMultipartUploadRequestDTO;
-import com.example.course_service.dto.response.UploadInitResponse;
-import com.example.course_service.dto.request.UploadInitRequest;
-import com.example.course_service.dto.request.UploadPresignedUrlRequest;
-import com.example.course_service.dto.response.CompleteMultipartUploadResponse;
-import com.example.course_service.dto.request.UploadCompleteRequest;
-import com.example.course_service.dto.request.UploadAbortRequest;
+import com.example.course_service.dto.request.CourseModerationRequest;
+import com.example.course_service.dto.response.CourseResponseDTO;
+import com.example.course_service.dto.response.TrainerResponseDTO;
+import com.example.course_service.dto.response.UserEnrollmentResponse;
+import com.example.course_service.exception.CourseNotFoundException;
 import com.example.course_service.exception.NullException;
 import com.example.course_service.exception.ThumbnailNotFoundException;
 import com.example.course_service.exception.TokenNotFoundException;
 import com.example.course_service.feign.EnrollmentClient;
 import com.example.course_service.feign.TrainerClient;
 import com.example.course_service.model.CourseEntity;
-import com.example.course_service.dto.response.TrainerResponseDTO;
-import com.example.course_service.repository.*;
+import com.example.course_service.model.LessonEntity;
+import com.example.course_service.model.ModuleEntity;
+import com.example.course_service.model.ReviewEntity;
+import com.example.course_service.repository.CategoryRepository;
+import com.example.course_service.repository.CourseRepository;
+import com.example.course_service.repository.LessonRepository;
+import com.example.course_service.repository.ModuleRepository;
+import com.example.course_service.repository.ReviewRepository;
 import com.example.course_service.service.impl.CourseServiceImpl;
-import com.example.course_service.service.UploadService;
 import com.example.course_service.service.notification.NotificationPublisher;
-import com.example.course_service.model.FileType;
 import com.example.course_service.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -64,13 +65,25 @@ class CourseServiceImplAdditionalTest {
         uploadService = mock(UploadService.class);
         notificationPublisher = mock(NotificationPublisher.class);
         jwtUtil = mock(JwtUtil.class);
+        org.springframework.beans.factory.ObjectProvider<CourseServiceImpl> selfProvider = mock(org.springframework.beans.factory.ObjectProvider.class);
 
         courseService = new CourseServiceImpl(
-                courseRepository, categoryRepository, moduleRepository,
-                lessonRepository, reviewRepository, trainerClient, enrollmentClient, fileService, uploadService, notificationPublisher, jwtUtil
+                courseRepository,
+                categoryRepository,
+                moduleRepository,
+                lessonRepository,
+                reviewRepository,
+                trainerClient,
+                enrollmentClient,
+                fileService,
+                uploadService,
+                notificationPublisher,
+                jwtUtil,
+                selfProvider
         );
+        when(selfProvider.getIfAvailable(any())).thenReturn(courseService);
 
-        com.example.course_service.dto.response.TrainerResponseDTO trainer = new com.example.course_service.dto.response.TrainerResponseDTO();
+        TrainerResponseDTO trainer = new TrainerResponseDTO();
         trainer.setUserId("user-1");
         trainer.setFullName("Trainer");
         when(trainerClient.getTrainer(anyString())).thenReturn(trainer);
@@ -97,10 +110,9 @@ class CourseServiceImplAdditionalTest {
     }
 
     @Test
-    void createCourse_NoDemoVideoAndNoKey_ThrowsIllegalArgument() throws Exception {
+    void createCourse_NoDemoVideoAndNoKey_ThrowsIllegalArgument() throws IOException {
         CourseEntity request = new CourseEntity();
         request.setTitle("Java");
-        // no demoVideoKey, no demoVideo file
 
         MultipartFile thumbnail = mock(MultipartFile.class);
         when(thumbnail.isEmpty()).thenReturn(false);
@@ -119,7 +131,7 @@ class CourseServiceImplAdditionalTest {
     }
 
     @Test
-    void createCourse_InvalidThumbnailExtension_ThrowsIllegalArgument() throws Exception {
+    void createCourse_InvalidThumbnailExtension_ThrowsIllegalArgument() {
         CourseEntity request = new CourseEntity();
         request.setTitle("Java");
 
@@ -131,15 +143,12 @@ class CourseServiceImplAdditionalTest {
                 () -> courseService.createCourse(TOKEN, request, null, thumbnail));
     }
 
-
-
-    // ================= createCourse with demoVideo file (not pre-uploaded key) =================
+    // ================= createCourse with demoVideo file =================
 
     @Test
-    void createCourse_WithDemoVideoFile_Success() throws Exception {
+    void createCourse_WithDemoVideoFile_Success() throws IOException {
         CourseEntity request = new CourseEntity();
         request.setTitle("Java");
-        // no demoVideoKey — will use the file
 
         MultipartFile thumbnail = mock(MultipartFile.class);
         when(thumbnail.isEmpty()).thenReturn(false);
@@ -160,13 +169,11 @@ class CourseServiceImplAdditionalTest {
         trainer.setFullName("Trainer");
         when(trainerClient.getTrainer(TOKEN)).thenReturn(trainer);
 
-        java.util.Map<String, Object> result = courseService.createCourse(TOKEN, request, demoVideo, thumbnail);
+        Map<String, Object> result = courseService.createCourse(TOKEN, request, demoVideo, thumbnail);
 
         assertTrue(result.get("message").toString().startsWith("Course Created Successfully"));
         verify(courseRepository).save(any(CourseEntity.class));
     }
-
-
 
     // ================= createLiveCourse validation guards =================
 
@@ -206,7 +213,7 @@ class CourseServiceImplAdditionalTest {
     }
 
     @Test
-    void updateCourse_WithNewThumbnail_UploadsAndSaves() throws java.io.IOException {
+    void updateCourse_WithNewThumbnail_UploadsAndSaves() throws IOException {
         CourseEntity existing = new CourseEntity();
         existing.setCourseId("C101");
         existing.setCreatorId("user-1");
@@ -235,7 +242,7 @@ class CourseServiceImplAdditionalTest {
         CourseEntity course = new CourseEntity();
         course.setCourseId("C101");
 
-        com.example.course_service.model.ReviewEntity r = new com.example.course_service.model.ReviewEntity();
+        ReviewEntity r = new ReviewEntity();
         r.setRating(null);
 
         when(courseRepository.findById("C101")).thenReturn(course);
@@ -269,10 +276,10 @@ class CourseServiceImplAdditionalTest {
         CourseEntity course = new CourseEntity();
         course.setCourseId("C101");
 
-        com.example.course_service.model.ModuleEntity module = new com.example.course_service.model.ModuleEntity();
+        ModuleEntity module = new ModuleEntity();
         module.setModuleId("M1");
 
-        com.example.course_service.model.LessonEntity lesson = new com.example.course_service.model.LessonEntity();
+        LessonEntity lesson = new LessonEntity();
         lesson.setDuration(60);
 
         when(courseRepository.findById("C101")).thenReturn(course);
@@ -289,10 +296,10 @@ class CourseServiceImplAdditionalTest {
         CourseEntity course = new CourseEntity();
         course.setCourseId("C101");
 
-        com.example.course_service.model.ModuleEntity module = new com.example.course_service.model.ModuleEntity();
+        ModuleEntity module = new ModuleEntity();
         module.setModuleId("M1");
 
-        com.example.course_service.model.LessonEntity lesson = new com.example.course_service.model.LessonEntity();
+        LessonEntity lesson = new LessonEntity();
         lesson.setDuration(120);
 
         when(courseRepository.findById("C101")).thenReturn(course);
@@ -303,7 +310,6 @@ class CourseServiceImplAdditionalTest {
 
         assertEquals("2 Hours", course.getDurationLabel());
     }
-
 
     // ================= getCourseDetail with null category =================
 
@@ -317,66 +323,132 @@ class CourseServiceImplAdditionalTest {
         when(reviewRepository.findByCourseId("C101")).thenReturn(List.of());
         when(fileService.generateDownloadUrl(any())).thenReturn("url");
 
-        var result = courseService.getCourseDetail("C101");
+        CourseResponseDTO result = courseService.getCourseDetail("C101");
 
         assertNotNull(result);
         assertNull(result.getCategoryName());
     }
 
-    // ================= Demo Video Multipart Upload Tests =================
+    // ================= streamAllCoursesAdmin =================
 
     @Test
-    void initiateDemoVideoMultipartUpload_Success() {
-        MultipartUploadInitRequest request = new MultipartUploadInitRequest();
-        request.setFileName("demo.mp4");
-        request.setContentType("video/mp4");
-        request.setFileSize(100L);
+    void streamAllCoursesAdmin_ReturnsSseEmitterAndEmitsCourses() {
+        CourseEntity course1 = new CourseEntity();
+        course1.setCourseId("C1");
+        course1.setTitle("Java");
+        course1.setIsVerified(true);
 
-        UploadInitResponse mockRes = new UploadInitResponse("up123", "key123", "success");
-        when(uploadService.initiateMultipartUpload(eq(TOKEN), any(UploadInitRequest.class))).thenReturn(mockRes);
+        CourseEntity course2 = new CourseEntity();
+        course2.setCourseId("C2");
+        course2.setTitle("Python");
+        course2.setIsVerified(false);
 
-        MultipartUploadInitResponse result = courseService.initiateDemoVideoMultipartUpload(TOKEN, request);
+        when(courseRepository.findAll()).thenReturn(List.of(course1, course2));
+        when(reviewRepository.findByCourseId(anyString())).thenReturn(List.of());
+
+        SseEmitter emitter = courseService.streamAllCoursesAdmin();
+
+        assertNotNull(emitter);
+    }
+
+    // ================= reviewCourse admin moderation =================
+
+    @Test
+    void moderateCourse_RejectAction_SetsModerationStatusRejected() {
+        when(jwtUtil.extractUserId(TOKEN)).thenReturn("admin-1");
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C101");
+        course.setCreatorId("user-1");
+
+        when(courseRepository.findById("C101")).thenReturn(course);
+
+        CourseModerationRequest req = new CourseModerationRequest();
+        req.setCourseId("C101");
+        req.setAction("REJECT");
+        req.setRemarks("Incomplete content");
+
+        String result = courseService.moderateCourse(TOKEN, "C101", req);
 
         assertNotNull(result);
-        assertEquals("up123", result.getUploadId());
-        assertEquals("key123", result.getFileKey());
+        verify(courseRepository).save(course);
     }
 
     @Test
-    void generateDemoVideoPresignedUrl_Success() {
-        when(uploadService.generatePresignedUrl(eq(TOKEN), any(UploadPresignedUrlRequest.class))).thenReturn("url123");
+    void moderateCourse_InvalidAction_ThrowsIllegalArgumentException() {
+        when(jwtUtil.extractUserId(TOKEN)).thenReturn("admin-1");
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C101");
 
-        String result = courseService.generateDemoVideoPresignedUrl(TOKEN, "up123", "key123", 1);
+        when(courseRepository.findById("C101")).thenReturn(course);
 
-        assertEquals("url123", result);
+        CourseModerationRequest req = new CourseModerationRequest();
+        req.setCourseId("C101");
+        req.setAction("INVALID_ACTION");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> courseService.moderateCourse(TOKEN, "C101", req));
     }
 
+    // ================= getEnrolledCoursesForStudent =================
+
     @Test
-    void completeDemoVideoMultipartUpload_Success() {
-        CompleteMultipartUploadRequestDTO request = new CompleteMultipartUploadRequestDTO();
-        request.setUploadId("up123");
-        CompleteMultipartUploadRequestDTO.PartETag p = new CompleteMultipartUploadRequestDTO.PartETag();
-        p.setPartNumber(1);
-        p.setETag("etag123");
-        request.setParts(List.of(p));
+    void getEnrolledCoursesForStudent_ValidToken_ReturnsEnrolledCourses() {
+        when(jwtUtil.extractUserId(TOKEN)).thenReturn("student-1");
+        UserEnrollmentResponse enrollment = new UserEnrollmentResponse();
+        enrollment.setTargetId("C101");
+        when(enrollmentClient.getUserEnrollmentsInternal(TOKEN)).thenReturn(List.of(enrollment));
 
-        CompleteMultipartUploadResponse mockRes = new CompleteMultipartUploadResponse("up123", "key123", "completed");
-        when(uploadService.completeMultipartUpload(eq(TOKEN), any(UploadCompleteRequest.class))).thenReturn(mockRes);
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C101");
+        course.setTitle("Java Course");
 
-        CompleteMultipartUploadResponse result = courseService.completeDemoVideoMultipartUpload(TOKEN, request);
+        when(courseRepository.findById("C101")).thenReturn(course);
+        when(reviewRepository.findByCourseId("C101")).thenReturn(List.of());
+
+        List<CourseResponseDTO> result = courseService.getEnrolledCoursesForStudent(TOKEN);
 
         assertNotNull(result);
-        assertEquals("key123", result.getVideoKey());
+        assertEquals(1, result.size());
+        assertEquals("C101", result.get(0).getCourseId());
     }
 
     @Test
-    void abortDemoVideoMultipartUpload_Success() {
-        AbortMultipartUploadRequestDTO request = new AbortMultipartUploadRequestDTO();
-        request.setUploadId("up123");
+    void getEnrolledCoursesForStudent_NullEnrolled_ReturnsEmptyList() {
+        when(jwtUtil.extractUserId(TOKEN)).thenReturn("student-1");
+        when(enrollmentClient.getUserEnrollmentsInternal(TOKEN)).thenReturn(null);
 
-        String result = courseService.abortDemoVideoMultipartUpload(TOKEN, request);
+        List<CourseResponseDTO> result = courseService.getEnrolledCoursesForStudent(TOKEN);
 
-        assertEquals("Upload aborted", result);
-        verify(uploadService, times(1)).abortMultipartUpload(eq(TOKEN), any(UploadAbortRequest.class));
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ================= refreshRatingCache =================
+
+    @Test
+    void refreshRatingCache_CourseNotFound_ThrowsCourseNotFoundException() {
+        when(courseRepository.findById("C999")).thenReturn(null);
+        assertThrows(CourseNotFoundException.class,
+                () -> courseService.refreshRatingCache("C999"));
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
+    void refreshRatingCache_WithMultipleReviews_UpdatesAverageRating() {
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C101");
+
+        ReviewEntity r1 = new ReviewEntity();
+        r1.setRating(5);
+        ReviewEntity r2 = new ReviewEntity();
+        r2.setRating(3);
+
+        when(courseRepository.findById("C101")).thenReturn(course);
+        when(reviewRepository.findByCourseId("C101")).thenReturn(List.of(r1, r2));
+
+        courseService.refreshRatingCache("C101");
+
+        verify(courseRepository).save(course);
+        assertEquals(4.0, course.getAverageRating());
     }
 }

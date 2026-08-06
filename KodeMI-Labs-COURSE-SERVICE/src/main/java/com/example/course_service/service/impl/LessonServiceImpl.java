@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -162,8 +162,8 @@ public class LessonServiceImpl implements LessonService {
         lesson.setContentKey(new ArrayList<>());
         lesson.setDuration(request.getDuration() != null ? request.getDuration() : 0);
         lesson.setVideoKey(request.getVideoKey());
-        lesson.setCreatedAt(new Date());
-        lesson.setUpdatedAt(new Date());
+        lesson.setCreatedAt(Instant.now());
+        lesson.setUpdatedAt(Instant.now());
         return lesson;
     }
 
@@ -180,7 +180,7 @@ public class LessonServiceImpl implements LessonService {
         CreateConferenceRequest confReq = new CreateConferenceRequest();
         confReq.setTitle(request.getTitle());
         confReq.setDescription(request.getDescription() != null ? request.getDescription() : request.getTitle());
-        confReq.setScheduledAt(request.getScheduledAt() != null ? request.getScheduledAt().toString() : new Date().toString());
+        confReq.setScheduledAt(request.getScheduledAt() != null ? request.getScheduledAt().toString() : Instant.now().toString());
         confReq.setMaxParticipants(DEFAULT_MAX_CONFERENCE_PARTICIPANTS);
         confReq.setCourseId(course.getCourseId());
         confReq.setModuleId(module.getModuleId());
@@ -225,7 +225,7 @@ public class LessonServiceImpl implements LessonService {
 
         lesson.setTitle(request.getTitle());
         lesson.setDescription(request.getDescription());
-        lesson.setUpdatedAt(new Date());
+        lesson.setUpdatedAt(Instant.now());
 
         lessonRepository.save(lesson);
 

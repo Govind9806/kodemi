@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -34,13 +34,13 @@ public class LiveCourseDetailResponseDTO {
     private String welcomeMessage;
     private String congratsMessage;
     private String courseType; // RECORDED or LIVE
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     
     // LIVE-specific fields
     private String liveSessionId;
-    private Date sessionStartTime;
-    private Date sessionEndTime;
+    private Instant sessionStartTime;
+    private Instant sessionEndTime;
     private String joinLink;
     private String sessionStatus;
     private String recordingUrl;

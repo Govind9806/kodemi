@@ -6,7 +6,6 @@ import com.example.course_service.repository.LessonRepository;
 import com.example.course_service.service.impl.VideoProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -61,6 +60,12 @@ class VideoProcessingServiceTest {
     }
 
     @Test
+    void processUploadedVideoAsync_AllNull_ReturnsEarly() {
+        videoProcessingService.processUploadedVideoAsync(null, null, null);
+        verifyNoInteractions(lessonRepository);
+    }
+
+    @Test
     void processUploadedVideoAsync_S3DownloadFails_MarksLessonFailed() {
         LessonEntity lesson = new LessonEntity();
         lesson.setLessonId("L1");
@@ -83,8 +88,47 @@ class VideoProcessingServiceTest {
     }
 
     @Test
-    void processUploadedVideoAsync_AllNull_ReturnsEarly() {
-        videoProcessingService.processUploadedVideoAsync(null, null, null);
-        verifyNoInteractions(lessonRepository);
+    void processUploadedVideoAsync_FfprobeNotFound_MarksFailed() {
+        VideoProcessingService service = new VideoProcessingService(
+                s3Client, fileService, lessonRepository, courseService, "non-existent-ffprobe-binary-12345", "ffmpeg");
+
+        LessonEntity lesson = new LessonEntity();
+        lesson.setLessonId("L1");
+        lesson.setModuleId("M1");
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C1");
+        LessonEntity.ContentItem item = new LessonEntity.ContentItem();
+        item.setKey("videos/test.mp4");
+
+        when(fileService.getBucketName()).thenReturn("test-bucket");
+
+        service.processUploadedVideoAsync(lesson, course, item);
+
+        verify(lessonRepository).save(lesson);
+        assertEquals("FAILED", item.getStatus());
+    }
+
+    @Test
+    void processUploadedVideoAsync_InterruptedException_MarksFailedAndInterrupts() {
+        VideoProcessingService service = new VideoProcessingService(
+                s3Client, fileService, lessonRepository, courseService, "java", "java");
+
+        LessonEntity lesson = new LessonEntity();
+        lesson.setLessonId("L1");
+        CourseEntity course = new CourseEntity();
+        course.setCourseId("C1");
+        LessonEntity.ContentItem item = new LessonEntity.ContentItem();
+        item.setKey("videos/test.mp4");
+
+        when(fileService.getBucketName()).thenReturn("test-bucket");
+        doAnswer(invocation -> {
+            Thread.currentThread().interrupt();
+            throw new InterruptedException("Interrupted");
+        }).when(s3Client).getObject(any(GetObjectRequest.class), any(ResponseTransformer.class));
+
+        service.processUploadedVideoAsync(lesson, course, item);
+
+        verify(lessonRepository).save(lesson);
+        assertEquals("FAILED", item.getStatus());
     }
 }

@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Date;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,8 +50,8 @@ class ReviewServiceImplTest {
         review.setReviewText("Excellent course");
         review.setIsVerified(false);
         review.setLikes(0);
-        review.setCreatedAt(new Date());
-        review.setUpdatedAt(new Date());
+        review.setCreatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
+        review.setUpdatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
     }
 
     @Test

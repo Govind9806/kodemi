@@ -1,9 +1,10 @@
 package com.example.course_service.model;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.*;
+import com.example.course_service.util.InstantConverter;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.Set;
 
 @Data
@@ -32,8 +33,8 @@ public class CourseEntity {
     private String welcomeMessage;
     private String categoryName;
     private Boolean isVerified;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private String courseType;
     private String verifierId;
 
@@ -148,12 +149,14 @@ public class CourseEntity {
     }
 
     @DynamoDBAttribute(attributeName = "createdAt")
-    public Date getCreatedAt() {
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
     @DynamoDBAttribute(attributeName = "updatedAt")
-    public Date getUpdatedAt() {
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 

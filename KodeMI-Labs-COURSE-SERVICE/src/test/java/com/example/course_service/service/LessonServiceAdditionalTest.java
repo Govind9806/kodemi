@@ -12,7 +12,6 @@ import com.example.course_service.service.impl.LessonServiceImpl;
 import com.example.course_service.feign.EnrollmentClient;
 import com.example.course_service.service.notification.NotificationPublisher;
 import com.example.course_service.util.JwtUtil;
-import com.example.course_service.service.CourseService;
 import com.example.course_service.service.impl.VideoProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -164,5 +163,34 @@ class LessonServiceAdditionalTest {
         assertEquals("Recording saved", result);
         verify(lessonRepository).save(lesson);
         assertEquals(3600, lesson.getDuration());
+    }
+
+    @Test
+    void saveUploadedContent_VideoExtension_TriggersAsyncVideoProcessing() {
+        LessonEntity lesson = new LessonEntity();
+        lesson.setLessonId("lesson-1");
+        lesson.setModuleId("module-1");
+        lesson.setContentKey(new ArrayList<>());
+
+        com.example.course_service.model.ModuleEntity module = new com.example.course_service.model.ModuleEntity();
+        module.setModuleId("module-1");
+        module.setCourseId("course-1");
+
+        com.example.course_service.model.CourseEntity course = new com.example.course_service.model.CourseEntity();
+        course.setCourseId("course-1");
+
+        when(lessonRepository.findById("lesson-1")).thenReturn(lesson);
+        when(moduleRepository.findById("module-1")).thenReturn(module);
+        when(courseRepository.findById("course-1")).thenReturn(course);
+
+        SaveUploadedContentRequest request = new SaveUploadedContentRequest();
+        request.setLessonId("lesson-1");
+        request.setFileKey("videos/lesson-1/video.mp4");
+        request.setLabel("Main Video");
+
+        String result = lessonService.saveUploadedContent(TOKEN, request);
+
+        assertEquals("Content saved", result);
+        verify(videoProcessingService).processUploadedVideoAsync(eq(lesson), eq(course), any());
     }
 }

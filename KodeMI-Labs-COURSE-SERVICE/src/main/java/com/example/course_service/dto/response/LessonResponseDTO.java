@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -29,11 +29,11 @@ public class LessonResponseDTO {
     // LIVE-lesson specific fields
     private String lessonType;
     private String liveSessionId;
-    private Date scheduledAt;
+    private Instant scheduledAt;
 
     private List<LessonEntity.ContentItem> contentKey;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     public void maskContent() {
         this.contentKey = null;

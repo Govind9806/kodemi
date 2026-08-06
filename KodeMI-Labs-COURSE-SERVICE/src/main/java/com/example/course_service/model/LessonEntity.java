@@ -1,10 +1,11 @@
 package com.example.course_service.model;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.*;
+import com.example.course_service.util.InstantConverter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -18,11 +19,11 @@ public class LessonEntity {
     private Integer duration;
     private Integer orderIndex;
     private List<ContentItem> contentKey;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private String lessonType;
     private String liveSessionId;
-    private Date scheduledAt;
+    private Instant scheduledAt;
     private String videoKey;
 
     @DynamoDBHashKey(attributeName = "lessonId")
@@ -59,12 +60,19 @@ public class LessonEntity {
     public void setContentKey(List<ContentItem> contentKey) { this.contentKey = contentKey; }
 
     @DynamoDBAttribute(attributeName = "createdAt")
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     @DynamoDBAttribute(attributeName = "updatedAt")
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    @DynamoDBAttribute(attributeName = "scheduledAt")
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(Instant scheduledAt) { this.scheduledAt = scheduledAt; }
 
     public static class ContentItem {
         private String type;

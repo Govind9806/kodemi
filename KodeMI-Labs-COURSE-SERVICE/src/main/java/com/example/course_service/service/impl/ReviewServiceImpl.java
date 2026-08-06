@@ -31,9 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -168,7 +167,7 @@ public class ReviewServiceImpl implements ReviewService {
         entity.setReviewText(request.getReviewText());
         entity.setIsVerified(false);
         entity.setLikes(0);
-        Date now = new Date();
+        Instant now = Instant.now();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         return entity;
@@ -245,7 +244,7 @@ public class ReviewServiceImpl implements ReviewService {
         if (request.getReviewText() != null) {
             existing.setReviewText(request.getReviewText());
         }
-        existing.setUpdatedAt(new Date());
+        existing.setUpdatedAt(Instant.now());
         reviewRepository.save(existing);
         courseService.refreshRatingCache(existing.getCourseId());
         log.info("Review {} updated successfully.", reviewId);

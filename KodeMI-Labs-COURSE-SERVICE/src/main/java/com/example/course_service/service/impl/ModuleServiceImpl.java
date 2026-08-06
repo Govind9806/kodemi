@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -111,8 +111,8 @@ public class ModuleServiceImpl implements ModuleService {
         module.setTitle(request.getTitle());
         module.setDescription(request.getDescription());
         module.setOrderIndex(request.getOrderIndex());
-        module.setCreatedAt(new Date());
-        module.setUpdatedAt(new Date());
+        module.setCreatedAt(Instant.now());
+        module.setUpdatedAt(Instant.now());
 
         moduleRepository.save(module);
         log.info("Module created successfully. moduleId: {}, courseId: {}", module.getModuleId(), module.getCourseId());
@@ -183,7 +183,7 @@ public class ModuleServiceImpl implements ModuleService {
         if (request.getOrderIndex() != null) {
             existing.setOrderIndex(request.getOrderIndex());
         }
-        existing.setUpdatedAt(new Date());
+        existing.setUpdatedAt(Instant.now());
         moduleRepository.save(existing);
         log.info("Module {} updated successfully.", moduleId);
 

@@ -6,7 +6,7 @@ import com.example.course_service.service.FileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -31,18 +31,18 @@ class UploadCleanupSchedulerTest {
         staleUpload1.setUploadId("up1");
         staleUpload1.setFileKey("key1");
         staleUpload1.setUploadStatus("INITIATED");
-        staleUpload1.setCreatedAt(new Date(System.currentTimeMillis() - (10 * 60 * 60 * 1000)));
+        staleUpload1.setCreatedAt(Instant.EPOCH);
 
         UploadEntity staleUpload2 = new UploadEntity();
         staleUpload2.setUploadId("up2");
         staleUpload2.setFileKey("key2");
         staleUpload2.setUploadStatus("UPLOADING");
-        staleUpload2.setCreatedAt(new Date(System.currentTimeMillis() - (8 * 60 * 60 * 1000)));
+        staleUpload2.setCreatedAt(Instant.EPOCH);
 
         UploadEntity freshUpload = new UploadEntity();
         freshUpload.setUploadId("up3");
         freshUpload.setUploadStatus("INITIATED");
-        freshUpload.setCreatedAt(new Date());
+        freshUpload.setCreatedAt(Instant.ofEpochMilli(2500000000000L));
 
         UploadEntity completedUpload = new UploadEntity();
         completedUpload.setUploadId("up4");
@@ -63,7 +63,7 @@ class UploadCleanupSchedulerTest {
         staleUpload.setUploadId("up1");
         staleUpload.setFileKey("key1");
         staleUpload.setUploadStatus("INITIATED");
-        staleUpload.setCreatedAt(new Date(System.currentTimeMillis() - (10 * 60 * 60 * 1000)));
+        staleUpload.setCreatedAt(Instant.EPOCH);
 
         when(uploadRepository.findAll()).thenReturn(List.of(staleUpload));
         doThrow(new RuntimeException("S3 error")).when(fileService).abortMultipartUpload(any(), any());
@@ -78,13 +78,13 @@ class UploadCleanupSchedulerTest {
         staleUnused.setFileKey("key1");
         staleUnused.setUploadStatus("COMPLETED");
         staleUnused.setIsUsed(false);
-        staleUnused.setUpdatedAt(new Date(System.currentTimeMillis() - (30 * 60 * 60 * 1000)));
+        staleUnused.setUpdatedAt(Instant.EPOCH);
 
         UploadEntity usedUpload = new UploadEntity();
         usedUpload.setUploadId("up2");
         usedUpload.setUploadStatus("COMPLETED");
         usedUpload.setIsUsed(true);
-        usedUpload.setUpdatedAt(new Date(System.currentTimeMillis() - (30 * 60 * 60 * 1000)));
+        usedUpload.setUpdatedAt(Instant.EPOCH);
 
         when(uploadRepository.findAll()).thenReturn(List.of(staleUnused, usedUpload));
 
@@ -101,7 +101,7 @@ class UploadCleanupSchedulerTest {
         staleUnused.setFileKey("key1");
         staleUnused.setUploadStatus("COMPLETED");
         staleUnused.setIsUsed(false);
-        staleUnused.setUpdatedAt(new Date(System.currentTimeMillis() - (30 * 60 * 60 * 1000)));
+        staleUnused.setUpdatedAt(Instant.EPOCH);
 
         when(uploadRepository.findAll()).thenReturn(List.of(staleUnused));
         doThrow(new RuntimeException("S3 error")).when(fileService).deleteFile(any());

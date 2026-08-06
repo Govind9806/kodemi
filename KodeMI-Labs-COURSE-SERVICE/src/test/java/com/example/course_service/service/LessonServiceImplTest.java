@@ -12,13 +12,12 @@ import com.example.course_service.service.impl.LessonServiceImpl;
 import com.example.course_service.feign.EnrollmentClient;
 import com.example.course_service.service.notification.NotificationPublisher;
 import com.example.course_service.util.JwtUtil;
-import com.example.course_service.service.CourseService;
 import com.example.course_service.service.impl.VideoProcessingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Date;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,8 +80,8 @@ class LessonServiceImplTest {
         lesson.setTitle("Intro");
         lesson.setDescription("Intro lesson");
         lesson.setOrderIndex(1);
-        lesson.setCreatedAt(new Date());
-        lesson.setUpdatedAt(new Date());
+        lesson.setCreatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
+        lesson.setUpdatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
         return lesson;
     }
 

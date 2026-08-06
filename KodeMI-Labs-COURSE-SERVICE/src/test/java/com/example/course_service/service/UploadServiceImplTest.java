@@ -1,16 +1,16 @@
 package com.example.course_service.service;
 
+import com.example.course_service.dto.request.MultipartUploadPartETag;
+import com.example.course_service.dto.request.UploadAbortRequest;
+import com.example.course_service.dto.request.UploadCompleteRequest;
 import com.example.course_service.dto.request.UploadInitRequest;
 import com.example.course_service.dto.request.UploadPresignedUrlRequest;
-import com.example.course_service.dto.request.UploadCompleteRequest;
-import com.example.course_service.dto.request.UploadAbortRequest;
-import com.example.course_service.dto.request.MultipartUploadPartETag;
-import com.example.course_service.dto.response.UploadInitResponse;
 import com.example.course_service.dto.response.CompleteMultipartUploadResponse;
-import com.example.course_service.exception.ForbiddenException;
+import com.example.course_service.dto.response.UploadInitResponse;
 import com.example.course_service.exception.FileUploadException;
-import com.example.course_service.model.UploadEntity;
+import com.example.course_service.exception.ForbiddenException;
 import com.example.course_service.model.FileType;
+import com.example.course_service.model.UploadEntity;
 import com.example.course_service.repository.UploadRepository;
 import com.example.course_service.service.impl.UploadServiceImpl;
 import com.example.course_service.util.JwtUtil;
@@ -366,7 +366,7 @@ class UploadServiceImplTest {
         assertNotNull(fileKey);
         assertTrue(fileKey.contains("preview/thumbnails/user123/"));
         assertTrue(fileKey.endsWith(".png"));
-        verify(fileService, times(1)).uploadFile(eq(fileKey), eq(bais), eq(100L), eq("image/png"));
+        verify(fileService, times(1)).uploadFile(fileKey, bais, 100L, "image/png");
         verify(uploadRepository, times(1)).save(any(UploadEntity.class));
     }
 
@@ -387,7 +387,7 @@ class UploadServiceImplTest {
         assertNotNull(fileKey);
         assertTrue(fileKey.contains("resources/certificates/user123/"));
         assertTrue(fileKey.endsWith(".bin"));
-        verify(fileService, times(1)).uploadFile(eq(fileKey), eq(bais), eq(100L), eq("application/octet-stream"));
+        verify(fileService, times(1)).uploadFile(fileKey, bais, 100L, "application/octet-stream");
     }
 
     @Test

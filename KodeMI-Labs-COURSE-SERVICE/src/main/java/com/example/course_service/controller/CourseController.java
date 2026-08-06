@@ -1,16 +1,11 @@
 package com.example.course_service.controller;
 
 import com.example.course_service.component.RequiresRole;
-import com.example.course_service.dto.request.AbortMultipartUploadRequestDTO;
-import com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO;
 import com.example.course_service.dto.request.CourseModerationRequest;
-import com.example.course_service.dto.request.MultipartUploadInitRequest;
 import com.example.course_service.dto.response.AccessCheckResponse;
-import com.example.course_service.dto.response.CompleteMultipartUploadResponse;
 import com.example.course_service.dto.response.CourseModerationResponse;
 import com.example.course_service.dto.response.CourseResponseDTO;
 import com.example.course_service.dto.response.EnrollmentItemInfoResponse;
-import com.example.course_service.dto.response.MultipartUploadInitResponse;
 import com.example.course_service.feign.EnrollmentClient;
 import com.example.course_service.model.CourseEntity;
 import com.example.course_service.service.CourseService;
@@ -66,8 +61,7 @@ public class CourseController {
     private final EnrollmentClient enrollmentClient;
 
     // This endpoint is used to create recorded courses.
-    // Demo video must be pre-uploaded via /demo-video/multipart/* APIs.
-    // Pass the returned fileKey as "demoVideoKey" inside the course JSON.
+    // Pass demo video file directly or pass pre-uploaded fileKey as "demoVideoKey" inside the course JSON.
     @RequiresRole(ROLE_TRAINER)
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createCourse(
@@ -79,8 +73,7 @@ public class CourseController {
     }
 
     // This endpoint is used to create a LIVE course.
-    // Demo video must be pre-uploaded via /demo-video/multipart APIs
-    // Pass the returned fileKey as "demoVideoKey" inside the course JSON
+    // Pass demo video file directly or pass pre-uploaded fileKey as "demoVideoKey" inside the course JSON.
     @RequiresRole(ROLE_TRAINER)
     @PostMapping(value = "/create-live", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> createLiveCourse(
@@ -89,51 +82,6 @@ public class CourseController {
             @RequestPart(value = "demoVideo", required = false) MultipartFile demoVideo,
             @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail) {
         return ResponseEntity.ok(courseService.createLiveCourse(token, request, demoVideo, thumbnail));
-    }
-
-    // For Demo video Upload API
-    @Deprecated
-    @RequiresRole(ROLE_TRAINER)
-    @PostMapping("/demo-video/multipart/init")
-    public ResponseEntity<MultipartUploadInitResponse> initiateDemoVideoMultipartUpload(
-            @RequestHeader("Authorization") String token,
-            @RequestBody @Valid MultipartUploadInitRequest request) {
-        log.info("[API] POST /demo-video/multipart/init - fileName: {}", request.getFileName());
-        return ResponseEntity.ok(courseService.initiateDemoVideoMultipartUpload(token, request));
-    }
-
-    //To Generate Presigned Url for Demo video
-    @Deprecated
-    @RequiresRole(ROLE_TRAINER)
-    @GetMapping("/demo-video/multipart/presigned-url")
-    public ResponseEntity<Map<String, String>> getDemoVideoPresignedUrlForPart(
-            @RequestHeader("Authorization") String token,
-            @RequestParam String uploadId,
-            @RequestParam(value = "fileKey", required = false) String fileKey,
-            @RequestParam int partNumber) {
-        log.info("[API] GET /demo-video/multipart/presigned-url - uploadId: {}, partNumber: {}", uploadId, partNumber);
-        String url = courseService.generateDemoVideoPresignedUrl(token, uploadId, fileKey, partNumber);
-        return ResponseEntity.ok(Map.of("presignedUrl", url));
-    }
-
-    @Deprecated
-    @RequiresRole(ROLE_TRAINER)
-    @PostMapping("/demo-video/multipart/complete")
-    public ResponseEntity<CompleteMultipartUploadResponse> completeDemoVideoMultipartUpload(
-            @RequestHeader("Authorization") String token,
-            @RequestBody @Valid CompleteMultipartUploadRequestDTO request) {
-        log.info("[API] POST /demo-video/multipart/complete - uploadId: {}", request.getUploadId());
-        return ResponseEntity.ok(courseService.completeDemoVideoMultipartUpload(token, request));
-    }
-
-    @Deprecated
-    @RequiresRole(ROLE_TRAINER)
-    @PostMapping("/demo-video/multipart/abort")
-    public ResponseEntity<Map<String, String>> abortDemoVideoMultipartUpload(
-            @RequestHeader("Authorization") String token,
-            @RequestBody @Valid AbortMultipartUploadRequestDTO request) {
-        log.info("[API] POST /demo-video/multipart/abort - uploadId: {}", request.getUploadId());
-        return ResponseEntity.ok(Map.of(MESSAGE, courseService.abortDemoVideoMultipartUpload(token, request)));
     }
 
     // This endpoint is used to update both recorded and LIVE courses. For LIVE courses, it updates the

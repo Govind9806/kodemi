@@ -4,8 +4,6 @@ import com.example.course_service.dto.request.BroadcastNotificationRequest;
 import com.example.course_service.dto.request.CreateConferenceRequest;
 import com.example.course_service.dto.request.LiveSessionRequest;
 import com.example.course_service.dto.request.NotificationRequest;
-import com.example.course_service.dto.response.AccessCheckResponse;
-import com.example.course_service.dto.response.ConferenceResponseDTO;
 import com.example.course_service.dto.response.LiveSessionResponse;
 import com.example.course_service.dto.response.TrainerResponseDTO;
 import com.example.course_service.dto.response.UserEnrollmentResponse;
@@ -42,8 +40,11 @@ class FeignFallbackFactoriesTest {
         RuntimeException cause = new RuntimeException("Service down");
         LiveClient client = factory.create(cause);
 
-        assertThrows(DownstreamServiceException.class, () -> client.createSession(new LiveSessionRequest()));
-        assertThrows(DownstreamServiceException.class, () -> client.createConference(new CreateConferenceRequest(), "token"));
+        LiveSessionRequest sessionRequest = new LiveSessionRequest();
+        assertThrows(DownstreamServiceException.class, () -> client.createSession(sessionRequest));
+
+        CreateConferenceRequest conferenceRequest = new CreateConferenceRequest();
+        assertThrows(DownstreamServiceException.class, () -> client.createConference(conferenceRequest, "token"));
 
         LiveSessionResponse session = client.getSessionById("s1");
         assertNotNull(session);
@@ -60,11 +61,13 @@ class FeignFallbackFactoriesTest {
         RuntimeException cause = new RuntimeException("Service down");
         NotificationClient client = factory.create(cause);
 
-        Map<String, String> result1 = client.sendInternalNotification("token", NotificationRequest.builder().build());
+        NotificationRequest notificationRequest = NotificationRequest.builder().build();
+        Map<String, String> result1 = client.sendInternalNotification("token", notificationRequest);
         assertNotNull(result1);
         assertTrue(result1.isEmpty());
 
-        Map<String, Object> result2 = client.broadcastNotification("token", BroadcastNotificationRequest.builder().build());
+        BroadcastNotificationRequest broadcastRequest = BroadcastNotificationRequest.builder().build();
+        Map<String, Object> result2 = client.broadcastNotification("token", broadcastRequest);
         assertNotNull(result2);
         assertTrue(result2.isEmpty());
     }

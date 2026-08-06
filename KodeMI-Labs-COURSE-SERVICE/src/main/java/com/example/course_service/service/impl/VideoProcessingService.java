@@ -19,14 +19,18 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.Date;
+import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -103,7 +107,7 @@ public class VideoProcessingService {
         item.setProcessedKey(thumbnailKey);
         item.setStatus(STATUS_READY);
         lesson.setDuration(durationSeconds);
-        lesson.setUpdatedAt(new Date());
+        lesson.setUpdatedAt(Instant.now());
         lessonRepository.save(lesson);
 
         courseService.refreshCourseStats(course.getCourseId());
@@ -120,17 +124,29 @@ public class VideoProcessingService {
     }
 
     private Path createPrivateTempDirectory() throws IOException {
-        // Create a private temp directory (owner-only) to avoid publicly writable directory risk
-        Path dir = Files.createTempDirectory("course-video-dir-");
         try {
-            PosixFileAttributeView view = Files.getFileAttributeView(dir, PosixFileAttributeView.class);
-            if (view != null) {
-                view.setPermissions(PosixFilePermissions.fromString(OWNER_ONLY_PERMISSIONS));
-            }
+            // Create a private temp directory atomically (owner-only) at creation time on POSIX systems
+            FileAttribute<Set<PosixFilePermission>> ownerOnlyAttr =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString(OWNER_ONLY_PERMISSIONS));
+            return Files.createTempDirectory("course-video-dir-", ownerOnlyAttr);
         } catch (UnsupportedOperationException e) {
-            log.debug("POSIX permissions not supported on this OS, skipping");
+            log.debug("POSIX permissions not supported on this OS, using user home directory fallback");
+            Path userHomeDir = Paths.get(System.getProperty("user.home"), ".course-service-temp");
+            if (!Files.exists(userHomeDir)) {
+                Files.createDirectories(userHomeDir);
+            }
+            Path dir = userHomeDir.resolve("course-video-dir-" + UUID.randomUUID());
+            Files.createDirectory(dir);
+
+            File file = dir.toFile();
+            boolean readable = file.setReadable(true, true);
+            boolean writable = file.setWritable(true, true);
+            boolean executable = file.setExecutable(true, true);
+            if (!readable || !writable || !executable) {
+                log.warn("Could not restrict permissions on temp directory: {}", dir);
+            }
+            return dir;
         }
-        return dir;
     }
 
     private void downloadFromS3(String key, Path destination) {

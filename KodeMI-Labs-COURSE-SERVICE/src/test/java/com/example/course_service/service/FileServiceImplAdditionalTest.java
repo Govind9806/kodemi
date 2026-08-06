@@ -91,11 +91,12 @@ class FileServiceImplAdditionalTest {
         "files/data.bin,        upload-bin",
         ","                                   // null key → octet-stream
     })
+    @SuppressWarnings("unchecked")
     void initiateMultipartUpload_VariousKeys_ReturnsUploadId(String key, String expectedId) {
         String resolvedId = expectedId != null ? expectedId.trim() : "upload-null";
         CreateMultipartUploadResponse mockResponse = mock(CreateMultipartUploadResponse.class);
         when(mockResponse.uploadId()).thenReturn(resolvedId);
-        when(s3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class))).thenReturn(mockResponse);
+        when(s3Client.createMultipartUpload(any(java.util.function.Consumer.class))).thenReturn(mockResponse);
 
         String uploadId = fileService.initiateMultipartUpload(key != null ? key.trim() : null);
         assertEquals(resolvedId, uploadId);
@@ -104,6 +105,7 @@ class FileServiceImplAdditionalTest {
     // ================= normalizeETag (via completeMultipartUpload) =================
 
     @Test
+    @SuppressWarnings("unchecked")
     void completeMultipartUpload_ETagWithDoubleQuotes_Normalized() {
         MultipartUploadPartETag part = new MultipartUploadPartETag();
         part.setPartNumber(1);
@@ -112,11 +114,12 @@ class FileServiceImplAdditionalTest {
         CompleteMultipartUploadResponse result =
                 fileService.completeMultipartUpload("key", "upload-123", List.of(part));
 
-        verify(s3Client).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
+        verify(s3Client).completeMultipartUpload(any(java.util.function.Consumer.class));
         assertNotNull(result);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void completeMultipartUpload_ETagWithSingleQuotes_Normalized() {
         MultipartUploadPartETag part = new MultipartUploadPartETag();
         part.setPartNumber(1);
@@ -125,7 +128,7 @@ class FileServiceImplAdditionalTest {
         CompleteMultipartUploadResponse result =
                 fileService.completeMultipartUpload("key", "upload-123", List.of(part));
 
-        verify(s3Client).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
+        verify(s3Client).completeMultipartUpload(any(java.util.function.Consumer.class));
         assertNotNull(result);
     }
 
@@ -139,6 +142,7 @@ class FileServiceImplAdditionalTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void completeMultipartUpload_MultiplePartsOutOfOrder_SortedCorrectly() {
         MultipartUploadPartETag part1 = new MultipartUploadPartETag(3, "etag-3");
         MultipartUploadPartETag part2 = new MultipartUploadPartETag(1, "etag-1");
@@ -147,7 +151,7 @@ class FileServiceImplAdditionalTest {
         CompleteMultipartUploadResponse result =
                 fileService.completeMultipartUpload("key", "upload-123", List.of(part1, part2, part3));
 
-        verify(s3Client).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
+        verify(s3Client).completeMultipartUpload(any(java.util.function.Consumer.class));
         assertEquals("key", result.getVideoKey());
     }
 

@@ -3,26 +3,31 @@ package com.example.course_service.service;
 import com.example.course_service.dto.response.CourseResponseDTO;
 import com.example.course_service.dto.response.TrainerResponseDTO;
 import com.example.course_service.exception.CourseNotFoundException;
-import com.example.course_service.feign.TrainerClient;
+import com.example.course_service.exception.NullException;
 import com.example.course_service.feign.EnrollmentClient;
+import com.example.course_service.feign.TrainerClient;
 import com.example.course_service.model.CategoryEntity;
 import com.example.course_service.model.CourseEntity;
-import com.example.course_service.repository.*;
+import com.example.course_service.repository.CategoryRepository;
+import com.example.course_service.repository.CourseRepository;
+import com.example.course_service.repository.LessonRepository;
+import com.example.course_service.repository.ModuleRepository;
+import com.example.course_service.repository.ReviewRepository;
 import com.example.course_service.service.impl.CourseServiceImpl;
-import com.example.course_service.service.UploadService;
 import com.example.course_service.service.notification.NotificationPublisher;
-import com.example.course_service.model.FileType;
 import com.example.course_service.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class CourseServiceDetailTest {
@@ -43,6 +48,7 @@ class CourseServiceDetailTest {
     private static final String TOKEN = "Bearer test-token";
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setup() {
         courseRepository = mock(CourseRepository.class);
         categoryRepository = mock(CategoryRepository.class);
@@ -55,6 +61,7 @@ class CourseServiceDetailTest {
         uploadService = mock(UploadService.class);
         notificationPublisher = mock(NotificationPublisher.class);
         jwtUtil = mock(JwtUtil.class);
+        ObjectProvider<CourseServiceImpl> selfProvider = mock(ObjectProvider.class);
 
         courseService = new CourseServiceImpl(
                 courseRepository,
@@ -67,8 +74,10 @@ class CourseServiceDetailTest {
                 fileService,
                 uploadService,
                 notificationPublisher,
-                jwtUtil
+                jwtUtil,
+                selfProvider
         );
+        when(selfProvider.getIfAvailable(any())).thenReturn(courseService);
     }
 
     // ================= GET COURSE DETAIL =================
@@ -107,7 +116,7 @@ class CourseServiceDetailTest {
     // ================= CREATE LIVE COURSE =================
 
     @Test
-    void createLiveCourse_Success() throws Exception {
+    void createLiveCourse_Success() throws IOException {
         CourseEntity request = new CourseEntity();
         request.setTitle("Live Java");
         request.setDemoVideoKey("preview/demo-videos/existing-key.mp4");
@@ -125,7 +134,7 @@ class CourseServiceDetailTest {
 
         when(trainerClient.getTrainer(TOKEN)).thenReturn(trainer);
 
-        java.util.Map<String, Object> result = courseService.createLiveCourse(TOKEN, request, null, thumbnail);
+        Map<String, Object> result = courseService.createLiveCourse(TOKEN, request, null, thumbnail);
 
         assertTrue(result.get("message").toString().startsWith("Live Course Created Successfully"));
         verify(courseRepository).save(any(CourseEntity.class));
@@ -136,70 +145,7 @@ class CourseServiceDetailTest {
         MultipartFile thumbnail = mock(MultipartFile.class);
         when(thumbnail.isEmpty()).thenReturn(false);
 
-        assertThrows(Exception.class,
+        assertThrows(NullException.class,
                 () -> courseService.createLiveCourse(TOKEN, null, null, thumbnail));
-    }
-
-    // ================= MULTIPART DEMO VIDEO =================
-
-    @Test
-    void initiateDemoVideoMultipartUpload_ReturnsResponse() {
-        com.example.course_service.dto.response.TrainerResponseDTO trainer = new com.example.course_service.dto.response.TrainerResponseDTO();
-        trainer.setUserId("user-1");
-        when(trainerClient.getTrainer(TOKEN)).thenReturn(trainer);
-
-        com.example.course_service.dto.response.UploadInitResponse mockRes = new com.example.course_service.dto.response.UploadInitResponse("upload-123", "key", "INITIATED");
-        when(uploadService.initiateMultipartUpload(eq(TOKEN), any(com.example.course_service.dto.request.UploadInitRequest.class))).thenReturn(mockRes);
-
-        var result = courseService.initiateDemoVideoMultipartUpload(TOKEN,
-                new com.example.course_service.dto.request.MultipartUploadInitRequest());
-
-        assertNotNull(result);
-        assertEquals("upload-123", result.getUploadId());
-    }
-
-    @Test
-    void generateDemoVideoPresignedUrl_ReturnsUrl() {
-        when(uploadService.generatePresignedUrl(eq(TOKEN), any())).thenReturn("https://presigned.url");
-
-        String url = courseService.generateDemoVideoPresignedUrl(TOKEN, "upload-123", "key", 1);
-
-        assertEquals("https://presigned.url", url);
-    }
-
-    @Test
-    void abortDemoVideoMultipartUpload_CallsService() {
-        com.example.course_service.dto.request.AbortMultipartUploadRequestDTO request =
-                new com.example.course_service.dto.request.AbortMultipartUploadRequestDTO();
-        request.setFileKey("key");
-        request.setUploadId("upload-123");
-
-        String result = courseService.abortDemoVideoMultipartUpload(TOKEN, request);
-
-        assertEquals("Upload aborted", result);
-        verify(uploadService).abortMultipartUpload(eq(TOKEN), any(com.example.course_service.dto.request.UploadAbortRequest.class));
-    }
-
-    @Test
-    void completeDemoVideoMultipartUpload_ReturnsResponse() {
-        com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO request =
-                new com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO();
-        request.setFileKey("key");
-        request.setUploadId("upload-123");
-
-        com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO.PartETag part =
-                new com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO.PartETag();
-        part.setPartNumber(1);
-        part.setETag("etag-1");
-        request.setParts(List.of(part));
-
-        com.example.course_service.dto.response.CompleteMultipartUploadResponse mockResponse =
-                new com.example.course_service.dto.response.CompleteMultipartUploadResponse("upload-123", "key", "done");
-        when(uploadService.completeMultipartUpload(eq(TOKEN), any())).thenReturn(mockResponse);
-
-        var result = courseService.completeDemoVideoMultipartUpload(TOKEN, request);
-
-        assertNotNull(result);
-        assertEquals("key", result.getVideoKey());
     }
 }

@@ -1,9 +1,10 @@
 package com.example.course_service.model;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.*;
+import com.example.course_service.util.InstantConverter;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @DynamoDBTable(tableName = "Uploads")
@@ -16,8 +17,8 @@ public class UploadEntity {
     private String uploadStatus;
     private String linkedEntityId;
     private Boolean isUsed;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
     private Long expiresAt;
 
     @DynamoDBHashKey(attributeName = "uploadId")
@@ -56,12 +57,14 @@ public class UploadEntity {
     }
 
     @DynamoDBAttribute(attributeName = "createdAt")
-    public Date getCreatedAt() {
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
     @DynamoDBAttribute(attributeName = "updatedAt")
-    public Date getUpdatedAt() {
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 

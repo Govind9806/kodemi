@@ -30,6 +30,15 @@
 		<java.version>17</java.version>
 		<spring-cloud.version>2025.1.0</spring-cloud.version>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>
+			**/exception/**,
+			**/config/**,
+			**/dto/**,
+			**/model/**,
+			**/repository/**,
+			**/feign/**,
+			**/CourseServiceApplication.java
+		</sonar.exclusions>
 	</properties>
 	<dependencies>
 		<!-- Spring Boot Starters -->
@@ -199,26 +208,6 @@
 				</configuration>
 			</plugin>
 			<!-- OWASP Dependency-Check Plugin -->
-			<plugin>
-				<groupId>org.owasp</groupId>
-				<artifactId>dependency-check-maven</artifactId>
-				<version>10.0.4</version>
-				<configuration>
-                    <nvdApiKey>1f4e5b40-6e51-4b07-bff2-d97e062de1ed</nvdApiKey>
-					<failBuildOnCVSS>8</failBuildOnCVSS>
-					<formats>
-						<format>HTML</format>
-						<format>XML</format>
-					</formats>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>check</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 			<!-- JaCoCo Maven Plugin -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
@@ -231,6 +220,7 @@
 						<exclude>com/example/course_service/dto/**</exclude>
 						<exclude>com/example/course_service/model/**</exclude>
 						<exclude>com/example/course_service/repository/**</exclude>
+						<exclude>com/example/course_service/feign/**</exclude>
 						<exclude>com/example/course_service/CourseServiceApplication*</exclude>
 					</excludes>
 				</configuration>

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Date;
+
 import java.util.List;
 
 import static org.mockito.Mockito.*;
@@ -41,7 +41,7 @@ class CourseControllerTest {
                 .creatorId("user-1")
                 .categoryId("cat-1")
                 .isVerified(true)
-                .createdAt(new Date())
+                .createdAt(java.time.Instant.ofEpochMilli(1000000000000L))
                 .build();
     }
 
@@ -248,5 +248,37 @@ class CourseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].courseId").value("C1"))
                 .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void getStudentEnrolledCourses_ReturnsList() throws Exception {
+        CourseResponseDTO dto = CourseResponseDTO.builder().courseId("C101").title("Java").build();
+        when(courseService.getEnrolledCoursesForStudent(TOKEN)).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/api/v1/course/enrolled")
+                        .header("Authorization", TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].courseId").value("C101"));
+    }
+
+    @Test
+    void getAllCoursesAdmin_Success() throws Exception {
+        when(courseService.getAllCoursesForAdmin()).thenReturn(List.of(buildDTO()));
+
+        mockMvc.perform(get("/api/v1/course/get-all-courses"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].courseId").value("C101"));
+    }
+
+    @Test
+    void getEnrollmentInfo_Success() throws Exception {
+        CourseResponseDTO dto = buildDTO();
+        dto.setPrice(99.99);
+        when(courseService.getCourseDetail("C101")).thenReturn(dto);
+
+        mockMvc.perform(get("/api/v1/course/internal/enrollment-info/C101"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.targetId").value("C101"))
+                .andExpect(jsonPath("$.pricingType").value("PAID"));
     }
 }

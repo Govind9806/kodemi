@@ -14,16 +14,7 @@ import software.amazon.awssdk.services.cloudfront.CloudFrontUtilities;
 import software.amazon.awssdk.services.cloudfront.model.CannedSignerRequest;
 import software.amazon.awssdk.services.cloudfront.url.SignedUrl;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
-import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -40,7 +31,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
@@ -53,6 +46,8 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -141,8 +136,6 @@ public class FileServiceImpl implements FileService {
             log.info("[CLOUDFRONT] Signed URL generated for key: {}", key);
             return signedUrl.url();
         } catch (IOException | GeneralSecurityException | SdkException e) {
-            // Mixed failure modes here: reading/parsing the private key (checked IO/security
-            // exceptions) and the CloudFront signing call itself (unchecked SdkException).
             log.error("Failed to generate CloudFront signed URL for key {}: {}. Falling back to S3.", key, e.getMessage());
             return generatePresignedUrl(key);
         }
@@ -191,9 +184,6 @@ public class FileServiceImpl implements FileService {
 
             logUploadSpeed(key, fileSize, start);
         } catch (Exception e) {
-            // Intentionally broad: this wraps file I/O, S3 SDK exceptions, and the
-            // CompletionException thrown by completionFuture().join(); all are converted
-            // into a single domain exception with context for the caller.
             log.error("Upload failed for key {}: {}", key, e.getMessage());
             throw new FileUploadException("S3 Optimized Upload Failed: " + e.getMessage(), e, "unknown", key, 0);
         } finally {
@@ -202,20 +192,34 @@ public class FileServiceImpl implements FileService {
     }
 
     /**
-     * Creates a private (owner-only) temp directory to avoid the publicly-writable
-     * temp-directory risk that plain Files.createTempDirectory carries on some OSes.
+     * Creates a private temp directory safely.
+     * Uses POSIX atomic owner-only permissions on supported platforms.
+     * Falls back to creating a unique directory under the user home directory on non-POSIX systems (e.g. Windows)
+     * to avoid sharing a public OS temp location.
      */
     private Path createPrivateTempDirectory() throws IOException {
-        Path tempDir = Files.createTempDirectory("s3-upload-dir-");
         try {
-            PosixFileAttributeView view = Files.getFileAttributeView(tempDir, PosixFileAttributeView.class);
-            if (view != null) {
-                view.setPermissions(PosixFilePermissions.fromString("rwx------"));
-            }
+            FileAttribute<Set<PosixFilePermission>> ownerOnlyPermissions =
+                    PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"));
+            return Files.createTempDirectory("s3-upload-dir-", ownerOnlyPermissions);
         } catch (UnsupportedOperationException e) {
-            log.debug("POSIX permissions not supported on this OS, skipping");
+            log.debug("POSIX permissions not supported on this OS, using user home directory fallback");
+            Path userHomeDir = Paths.get(System.getProperty("user.home"), ".course-service-temp");
+            if (!Files.exists(userHomeDir)) {
+                Files.createDirectories(userHomeDir);
+            }
+            Path tempDir = userHomeDir.resolve("s3-upload-dir-" + UUID.randomUUID());
+            Files.createDirectory(tempDir);
+
+            File file = tempDir.toFile();
+            boolean readable = file.setReadable(true, true);
+            boolean writable = file.setWritable(true, true);
+            boolean executable = file.setExecutable(true, true);
+            if (!readable || !writable || !executable) {
+                log.warn("Could not restrict permissions on temp directory: {}", tempDir);
+            }
+            return tempDir;
         }
-        return tempDir;
     }
 
     private void copyToFile(InputStream inputStream, File tempFile) throws IOException {
@@ -256,7 +260,7 @@ public class FileServiceImpl implements FileService {
     public void deleteFile(String key) {
         try {
             log.info("Deleting file from S3. Key: {}", key);
-            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(key).build());
+            s3Client.deleteObject(b -> b.bucket(bucketName).key(key));
         } catch (SdkException e) {
             log.error("Failed to delete file {}: {}", key, e.getMessage());
         }
@@ -265,7 +269,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public boolean fileExists(String key) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName).key(key).build());
+            s3Client.headObject(b -> b.bucket(bucketName).key(key));
             return true;
         } catch (SdkException e) {
             return false;
@@ -280,12 +284,11 @@ public class FileServiceImpl implements FileService {
     @Override
     public String initiateMultipartUpload(String key) {
         log.info("[MULTIPART INIT] Starting upload for key: {}", key);
-        CreateMultipartUploadRequest request = CreateMultipartUploadRequest.builder()
+        String uploadId = s3Client.createMultipartUpload(b -> b
                 .bucket(bucketName)
                 .key(key)
                 .contentType(determineContentType(key))
-                .build();
-        String uploadId = s3Client.createMultipartUpload(request).uploadId();
+        ).uploadId();
         log.info("[MULTIPART INIT SUCCESS] uploadId: {}, fileKey: {}", uploadId, key);
         return uploadId;
     }
@@ -312,22 +315,21 @@ public class FileServiceImpl implements FileService {
         for (MultipartUploadPartETag part : sortedParts) {
             completedParts.add(toCompletedPart(part));
         }
-        CompletedMultipartUpload completedUpload = CompletedMultipartUpload.builder()
-                .parts(completedParts)
-                .build();
-        s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+
+        s3Client.completeMultipartUpload(b -> b
                 .bucket(bucketName)
                 .key(key)
                 .uploadId(uploadId)
-                .multipartUpload(completedUpload)
-                .build());
+                .multipartUpload(m -> m.parts(completedParts))
+        );
+
         log.info("[MULTIPART COMPLETE SUCCESS] Video key: {}, uploadId: {}", key, uploadId);
         return new CompleteMultipartUploadResponse(uploadId, key, "Multipart upload completed");
     }
 
     @Override
     public void abortMultipartUpload(String key, String uploadId) {
-        s3Client.abortMultipartUpload(AbortMultipartUploadRequest.builder().bucket(bucketName).key(key).uploadId(uploadId).build());
+        s3Client.abortMultipartUpload(b -> b.bucket(bucketName).key(key).uploadId(uploadId));
     }
 
     private CompletedPart toCompletedPart(MultipartUploadPartETag part) {

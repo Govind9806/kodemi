@@ -1,5 +1,8 @@
 package com.example.course_service.service.impl;
 
+import com.example.course_service.dto.notification.NotificationChannel;
+import com.example.course_service.dto.notification.NotificationRequest;
+import com.example.course_service.dto.notification.NotificationType;
 import com.example.course_service.dto.request.AbortMultipartUploadRequestDTO;
 import com.example.course_service.dto.request.CompleteMultipartUploadRequestDTO;
 import com.example.course_service.dto.request.CourseModerationRequest;
@@ -36,9 +39,6 @@ import com.example.course_service.repository.CourseRepository;
 import com.example.course_service.repository.LessonRepository;
 import com.example.course_service.repository.ModuleRepository;
 import com.example.course_service.repository.ReviewRepository;
-import com.example.course_service.dto.notification.NotificationChannel;
-import com.example.course_service.dto.notification.NotificationRequest;
-import com.example.course_service.dto.notification.NotificationType;
 import com.example.course_service.service.CourseService;
 import com.example.course_service.service.FileService;
 import com.example.course_service.service.UploadService;
@@ -46,8 +46,9 @@ import com.example.course_service.service.notification.NotificationPublisher;
 import com.example.course_service.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,7 +61,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -72,7 +72,6 @@ public class CourseServiceImpl implements CourseService {
 
     private static final Logger log = LoggerFactory.getLogger(CourseServiceImpl.class);
 
-    // String constants to eliminate duplication
     private static final String NULL_BODY_MESSAGE = "Null Body.";
     private static final String ZERO_MINUTES = "0 Minutes";
 
@@ -90,6 +89,8 @@ public class CourseServiceImpl implements CourseService {
     private final NotificationPublisher notificationPublisher;
     private final JwtUtil jwtUtil;
 
+    private final ObjectProvider<CourseServiceImpl> selfProvider;
+
     public CourseServiceImpl(CourseRepository courseRepository,
                              CategoryRepository categoryRepository,
                              ModuleRepository moduleRepository,
@@ -100,7 +101,8 @@ public class CourseServiceImpl implements CourseService {
                              FileService fileService,
                              UploadService uploadService,
                              NotificationPublisher notificationPublisher,
-                             JwtUtil jwtUtil) {
+                             JwtUtil jwtUtil,
+                             ObjectProvider<CourseServiceImpl> selfProvider) {
         this.courseRepository = courseRepository;
         this.categoryRepository = categoryRepository;
         this.moduleRepository = moduleRepository;
@@ -112,6 +114,11 @@ public class CourseServiceImpl implements CourseService {
         this.uploadService = uploadService;
         this.notificationPublisher = notificationPublisher;
         this.jwtUtil = jwtUtil;
+        this.selfProvider = selfProvider;
+    }
+
+    private CourseServiceImpl getSelf() {
+        return selfProvider.getIfAvailable(() -> this);
     }
 
     @Override
@@ -150,7 +157,6 @@ public class CourseServiceImpl implements CourseService {
             throw new TokenNotFoundException("Token is required.");
         }
 
-        // 2. Fetch Trainer Details (Feign)
         Instant feignStart = Instant.now();
         TrainerResponseDTO trainer = trainerClient.getTrainer(token);
         String ownerId = trainer.getUserId();
@@ -166,7 +172,6 @@ public class CourseServiceImpl implements CourseService {
                 request.getDemoVideoKey(), demoVideo, token, ownerId, courseId,
                 FileType.DEMO_VIDEO, () -> new IllegalArgumentException("Demo video is required (either as a file or a pre-uploaded key)"));
 
-        // 3. Save Course Data (DB)
         Instant dbStart = Instant.now();
         CourseEntity course = new CourseEntity();
         course.setCourseId(courseId);
@@ -193,8 +198,8 @@ public class CourseServiceImpl implements CourseService {
         course.setDurationLabel(ZERO_MINUTES);
         course.setAverageRating(0.0);
         course.setCourseType(isLive ? "LIVE" : "RECORDED");
-        course.setCreatedAt(new Date());
-        course.setUpdatedAt(new Date());
+        course.setCreatedAt(Instant.now());
+        course.setUpdatedAt(Instant.now());
 
         courseRepository.save(course);
         notifyAdminEmitters();
@@ -212,11 +217,6 @@ public class CourseServiceImpl implements CourseService {
                 "courseId", course.getCourseId());
     }
 
-    /**
-     * Resolves the asset key for a course either by uploading the provided file directly,
-     * or by validating and consuming a pre-uploaded key. Throws via the supplied exception
-     * supplier if neither is available.
-     */
     private String resolveOrUploadAsset(String existingKey, MultipartFile file, String token, String ownerId,
                                         String courseId, FileType fileType,
                                         java.util.function.Supplier<? extends RuntimeException> missingAssetException) {
@@ -255,7 +255,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Cacheable(value = "instructorCourses", key = "#creatorId")
     public List<CourseResponseDTO> getCoursesByCreatorId(String creatorId) {
-        return getCoursesByCreatorId(creatorId, null);
+        return getSelf().getCoursesByCreatorId(creatorId, null);
     }
 
     @Override
@@ -263,17 +263,14 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseResponseDTO> getCoursesByCreatorId(String creatorId, String courseType) {
         List<CourseResponseDTO> result = new ArrayList<>();
         for (CourseEntity c : courseRepository.findAll()) {
-            if (!creatorId.equals(c.getCreatorId())) {
-                continue;
+            if (creatorId.equals(c.getCreatorId())
+                    && (courseType == null || courseType.trim().isEmpty() || courseType.equalsIgnoreCase(c.getCourseType()))) {
+                CourseResponseDTO dto = toDTO(c);
+                if ("LIVE".equalsIgnoreCase(c.getCourseType())) {
+                    dto.setModules(getModulesWithLessonsForCourse(c.getCourseId()));
+                }
+                result.add(dto);
             }
-            if (courseType != null && !courseType.equalsIgnoreCase(c.getCourseType())) {
-                continue;
-            }
-            CourseResponseDTO dto = toDTO(c);
-            if ("LIVE".equalsIgnoreCase(c.getCourseType())) {
-                dto.setModules(getModulesWithLessonsForCourse(c.getCourseId()));
-            }
-            result.add(dto);
         }
         return result;
     }
@@ -303,7 +300,7 @@ public class CourseServiceImpl implements CourseService {
         applyThumbnailUpdate(existing, request.getThumbnailKey(), thumbnail, token, ownerId, courseId);
         applyBasicFieldUpdates(existing, request);
 
-        existing.setUpdatedAt(new Date());
+        existing.setUpdatedAt(Instant.now());
         courseRepository.save(existing);
         notifyAdminEmitters();
         return "Course Updated Successfully.";
@@ -354,7 +351,6 @@ public class CourseServiceImpl implements CourseService {
         }
     }
 
-    // only to the admin
     @Override
     @Transactional
     @Caching(evict = {
@@ -383,7 +379,6 @@ public class CourseServiceImpl implements CourseService {
         return "Course Verified Successfully.";
     }
 
-    // only to the admin
     @Override
     @Transactional
     @Caching(evict = {
@@ -413,10 +408,6 @@ public class CourseServiceImpl implements CourseService {
         return "Course Rejected.";
     }
 
-    /**
-     * Builds and publishes a notification, swallowing and logging any failure so that a
-     * downstream notification outage never breaks the calling business operation.
-     */
     private void publishNotification(String userId, String title, String message, NotificationType type,
                                      String referenceType, String referenceId) {
         try {
@@ -439,7 +430,7 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public SseEmitter streamAllCoursesAdmin() {
         log.info("Client subscribed to admin courses stream");
-        SseEmitter emitter = new SseEmitter(0L); // Infinite timeout
+        SseEmitter emitter = new SseEmitter(0L);
         adminEmitters.add(emitter);
 
         Runnable removeEmitter = () -> adminEmitters.remove(emitter);
@@ -460,9 +451,13 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseResponseDTO> getAllCoursesForAdmin() {
         List<CourseResponseDTO> result = new ArrayList<>();
         for (CourseEntity c : courseRepository.findAll()) {
-            CourseResponseDTO dto = toDTO(c);
-            dto.setModules(getModulesWithLessonsForCourse(c.getCourseId()));
-            result.add(dto);
+            if (c != null) {
+                CourseResponseDTO dto = toDTO(c);
+                if (dto != null) {
+                    dto.setModules(getModulesWithLessonsForCourse(c.getCourseId()));
+                    result.add(dto);
+                }
+            }
         }
         return result;
     }
@@ -485,15 +480,6 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    @Transactional
-    @Caching(evict = {
-            @CacheEvict(value = "allCourses", allEntries = true),
-            @CacheEvict(value = "instructorCourses", allEntries = true),
-            @CacheEvict(value = "verifiedCourses", allEntries = true),
-            @CacheEvict(value = "courseDetails", key = "#courseId"),
-            @CacheEvict(value = "liveCourseDetails", key = "#courseId"),
-            @CacheEvict(value = "coursesByCategory", allEntries = true)
-    })
     public String moderateCourse(String token, String courseId, CourseModerationRequest request) {
         if (request == null || request.getAction() == null || request.getAction().isBlank()) {
             log.warn("Moderation request missing action for courseId={}", courseId);
@@ -504,8 +490,8 @@ public class CourseServiceImpl implements CourseService {
         log.info("Moderating course: courseId={}, action={}, remarks={}", courseId, action, request.getRemarks());
 
         return switch (action) {
-            case "VERIFY" -> verifyCourse(token, courseId);
-            case "REJECT" -> rejectCourse(token, courseId, request.getRemarks());
+            case "VERIFY" -> getSelf().verifyCourse(token, courseId);
+            case "REJECT" -> getSelf().rejectCourse(token, courseId, request.getRemarks());
             default -> {
                 log.warn("Invalid moderation action '{}' for courseId={}", action, courseId);
                 throw new IllegalArgumentException("Invalid action: " + action + ". Use 'VERIFY' or 'REJECT'.");
@@ -513,7 +499,6 @@ public class CourseServiceImpl implements CourseService {
         };
     }
 
-    // only to the admin
     @Override
     @Cacheable(value = "verifiedCourses", key = "'reviewed'")
     public List<CourseResponseDTO> getAllReviewedCourses(String token) {
@@ -561,7 +546,7 @@ public class CourseServiceImpl implements CourseService {
     private List<ReviewResponseDTO> buildSortedReviewDTOs(String courseId) {
         List<ReviewEntity> reviewEntities = new ArrayList<>(reviewRepository.findByCourseId(courseId));
         reviewEntities.sort(Comparator.comparing(
-                (ReviewEntity r) -> r.getCreatedAt() != null ? r.getCreatedAt() : new Date(0),
+                (ReviewEntity r) -> r.getCreatedAt() != null ? r.getCreatedAt() : Instant.EPOCH,
                 Comparator.reverseOrder()));
 
         List<ReviewResponseDTO> reviews = new ArrayList<>();
@@ -586,7 +571,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public CourseResponseDTO getCourseDetailWithModules(String courseId) {
-        CourseResponseDTO cachedDto = getCourseDetail(courseId);
+        CourseResponseDTO cachedDto = getSelf().getCourseDetail(courseId);
         CourseResponseDTO dto = cachedDto.toBuilder().build();
         dto.setModules(getModulesWithLessonsForCourse(courseId));
         return dto;
@@ -664,37 +649,47 @@ public class CourseServiceImpl implements CourseService {
         String userId = jwtUtil.extractUserId(token);
         log.info("Fetching enrolled courses for student userId: {}", userId);
 
-        List<UserEnrollmentResponse> userEnrollments;
-        try {
-            userEnrollments = enrollmentClient.getUserEnrollmentsInternal(token);
-        } catch (Exception e) {
-            log.error("Failed to fetch enrollments for userId: {}", userId, e);
-            return Collections.emptyList();
-        }
-
-        if (userEnrollments == null || userEnrollments.isEmpty()) {
+        List<UserEnrollmentResponse> userEnrollments = fetchEnrollmentsSafely(token, userId);
+        if (userEnrollments.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<CourseResponseDTO> enrolledCourses = new ArrayList<>();
         for (UserEnrollmentResponse enrollment : userEnrollments) {
-            if (enrollment == null || enrollment.getTargetId() == null) {
+            if (isInvalidOrInactive(enrollment)) {
                 continue;
             }
-            if (enrollment.getStatus() != null && !"ACTIVE".equalsIgnoreCase(enrollment.getStatus())) {
-                continue;
-            }
-            String courseId = enrollment.getTargetId();
-            try {
-                CourseEntity course = courseRepository.findById(courseId);
-                if (course != null) {
-                    enrolledCourses.add(getCourseDetailWithModules(course.getCourseId()));
-                }
-            } catch (Exception e) {
-                log.warn("Failed to load course details for enrolled targetId: {}", courseId, e);
-            }
+            fetchAndAddCourse(enrollment.getTargetId(), enrolledCourses);
         }
         return enrolledCourses;
+    }
+
+    private List<UserEnrollmentResponse> fetchEnrollmentsSafely(String token, String userId) {
+        try {
+            List<UserEnrollmentResponse> enrollments = enrollmentClient.getUserEnrollmentsInternal(token);
+            return enrollments != null ? enrollments : Collections.emptyList();
+        } catch (Exception e) {
+            log.error("Failed to fetch enrollments for userId: {}", userId, e);
+            return Collections.emptyList();
+        }
+    }
+
+    private boolean isInvalidOrInactive(UserEnrollmentResponse enrollment) {
+        if (enrollment == null || enrollment.getTargetId() == null) {
+            return true;
+        }
+        return enrollment.getStatus() != null && !"ACTIVE".equalsIgnoreCase(enrollment.getStatus());
+    }
+
+    private void fetchAndAddCourse(String courseId, List<CourseResponseDTO> enrolledCourses) {
+        try {
+            CourseEntity course = courseRepository.findById(courseId);
+            if (course != null) {
+                enrolledCourses.add(getCourseDetailWithModules(course.getCourseId()));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load course details for enrolled targetId: {}", courseId, e);
+        }
     }
 
     private CourseEntity getCourseOrThrow(String courseId) {

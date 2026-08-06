@@ -1,8 +1,9 @@
 package com.example.course_service.model;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.*;
+import com.example.course_service.util.InstantConverter;
 import lombok.Data;
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @DynamoDBTable(tableName = "Module")
@@ -14,8 +15,8 @@ public class ModuleEntity {
     private String title;
     private String description;
     private Integer orderIndex;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     @DynamoDBHashKey(attributeName = "moduleId")
     public String getModuleId() { return moduleId; }
@@ -42,10 +43,12 @@ public class ModuleEntity {
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
 
     @DynamoDBAttribute(attributeName = "createdAt")
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     @DynamoDBAttribute(attributeName = "updatedAt")
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

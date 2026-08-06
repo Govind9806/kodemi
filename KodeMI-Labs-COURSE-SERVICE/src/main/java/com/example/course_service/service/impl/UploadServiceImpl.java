@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -50,7 +50,7 @@ public class UploadServiceImpl implements UploadService {
         String fileKey = generateS3Key(request.getFileType(), ownerId, extension);
         String uploadId = fileService.initiateMultipartUpload(fileKey);
 
-        Date now = new Date();
+        Instant now = Instant.now();
         UploadEntity entity = new UploadEntity();
         entity.setUploadId(uploadId);
         entity.setOwnerId(ownerId);
@@ -78,7 +78,7 @@ public class UploadServiceImpl implements UploadService {
 
         if (STATUS_INITIATED.equals(status)) {
             entity.setUploadStatus(STATUS_UPLOADING);
-            entity.setUpdatedAt(new Date());
+            entity.setUpdatedAt(Instant.now());
             uploadRepository.save(entity);
         }
 
@@ -94,7 +94,7 @@ public class UploadServiceImpl implements UploadService {
                 fileService.completeMultipartUpload(entity.getFileKey(), request.getUploadId(), request.getParts());
 
         entity.setUploadStatus(STATUS_COMPLETED);
-        entity.setUpdatedAt(new Date());
+        entity.setUpdatedAt(Instant.now());
         uploadRepository.save(entity);
 
         log.info("[UPLOAD COMPLETE] videoKey/fileKey: {}", response.getVideoKey());
@@ -109,7 +109,7 @@ public class UploadServiceImpl implements UploadService {
         fileService.abortMultipartUpload(entity.getFileKey(), request.getUploadId());
 
         entity.setUploadStatus(STATUS_ABORTED);
-        entity.setUpdatedAt(new Date());
+        entity.setUpdatedAt(Instant.now());
         uploadRepository.save(entity);
 
         return "Upload aborted";
@@ -137,7 +137,7 @@ public class UploadServiceImpl implements UploadService {
         entity.setIsUsed(true);
         entity.setUploadStatus(STATUS_USED);
         entity.setLinkedEntityId(linkedEntityId);
-        entity.setUpdatedAt(new Date());
+        entity.setUpdatedAt(Instant.now());
         uploadRepository.save(entity);
 
         log.info("[UPLOAD CONSUMED] fileKey: {}, linkedTo: {}", fileKey, linkedEntityId);
@@ -160,7 +160,7 @@ public class UploadServiceImpl implements UploadService {
             throw new FileUploadException("Failed to read file", file.getOriginalFilename(), fileKey, 0);
         }
 
-        Date now = new Date();
+        Instant now = Instant.now();
         UploadEntity entity = new UploadEntity();
         entity.setUploadId("direct-" + UUID.randomUUID());
         entity.setOwnerId(ownerId);

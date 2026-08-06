@@ -2,7 +2,7 @@ package com.example.course_service.model;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Date;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,7 +17,7 @@ class LiveCourseMappingTest {
 
     @Test
     void setAndGetAllFields_WorksCorrectly() {
-        Date now = new Date();
+        Instant now = Instant.ofEpochMilli(1000000000000L);
         LiveCourseMapping mapping = new LiveCourseMapping();
         mapping.setId("m1");
         mapping.setCourseId("course-1");

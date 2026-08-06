@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @Component
@@ -23,18 +23,17 @@ public class UploadCleanupScheduler {
     @Scheduled(fixedRate = 3600000)
     public void abortStaleIncompleteUploads() {
         log.info("[SCHEDULER] Running abortStaleIncompleteUploads");
-        long sixHoursAgo = System.currentTimeMillis() - (6 * 60 * 60 * 1000);
-        Date threshold = new Date(sixHoursAgo);
+        Instant threshold = Instant.now().minus(java.time.Duration.ofHours(6));
 
         List<UploadEntity> allUploads = uploadRepository.findAll();
         for (UploadEntity upload : allUploads) {
             if (("INITIATED".equals(upload.getUploadStatus()) || "UPLOADING".equals(upload.getUploadStatus())) 
                     && upload.getCreatedAt() != null 
-                    && upload.getCreatedAt().before(threshold)) {
+                    && upload.getCreatedAt().isBefore(threshold)) {
                 try {
                     fileService.abortMultipartUpload(upload.getFileKey(), upload.getUploadId());
                     upload.setUploadStatus("ABORTED");
-                    upload.setUpdatedAt(new Date());
+                    upload.setUpdatedAt(Instant.now());
                     uploadRepository.save(upload);
                     log.info("[SCHEDULER] Aborted stale upload: {}", upload.getUploadId());
                 } catch (Exception e) {
@@ -48,19 +47,18 @@ public class UploadCleanupScheduler {
     @Scheduled(fixedRate = 86400000)
     public void deleteUnusedCompletedUploads() {
         log.info("[SCHEDULER] Running deleteUnusedCompletedUploads");
-        long twentyFourHoursAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000);
-        Date threshold = new Date(twentyFourHoursAgo);
+        Instant threshold = Instant.now().minus(java.time.Duration.ofHours(24));
 
         List<UploadEntity> allUploads = uploadRepository.findAll();
         for (UploadEntity upload : allUploads) {
             if ("COMPLETED".equals(upload.getUploadStatus()) 
                     && Boolean.FALSE.equals(upload.getIsUsed()) 
                     && upload.getUpdatedAt() != null 
-                    && upload.getUpdatedAt().before(threshold)) {
+                    && upload.getUpdatedAt().isBefore(threshold)) {
                 try {
                     fileService.deleteFile(upload.getFileKey());
                     upload.setUploadStatus("ABORTED");
-                    upload.setUpdatedAt(new Date());
+                    upload.setUpdatedAt(Instant.now());
                     uploadRepository.save(upload);
                     log.info("[SCHEDULER] Deleted unused completed upload: {}", upload.getUploadId());
                 } catch (Exception e) {

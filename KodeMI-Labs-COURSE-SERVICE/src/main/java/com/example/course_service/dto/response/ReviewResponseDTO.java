@@ -1,7 +1,7 @@
 package com.example.course_service.dto.response;
 
 import lombok.*;
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -17,6 +17,6 @@ public class ReviewResponseDTO {
     private String reviewText;
     private Boolean isVerified;
     private Integer likes;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

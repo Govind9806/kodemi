@@ -17,7 +17,7 @@ import com.example.course_service.service.impl.LiveCourseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -346,12 +346,12 @@ class LiveCourseServiceImplTest {
         com.example.course_service.model.ReviewEntity r1 = new com.example.course_service.model.ReviewEntity();
         r1.setReviewId("r1");
         r1.setCourseId("course-1");
-        r1.setCreatedAt(new Date(1000));
+        r1.setCreatedAt(Instant.ofEpochMilli(1000));
 
         com.example.course_service.model.ReviewEntity r2 = new com.example.course_service.model.ReviewEntity();
         r2.setReviewId("r2");
         r2.setCourseId("course-1");
-        r2.setCreatedAt(new Date(2000));
+        r2.setCreatedAt(Instant.ofEpochMilli(2000));
 
         when(courseRepository.findById("course-1")).thenReturn(course);
         when(liveMappingRepository.findByCourseId("course-1")).thenReturn(null);

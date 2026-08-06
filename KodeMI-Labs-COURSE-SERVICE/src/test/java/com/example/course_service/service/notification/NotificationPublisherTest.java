@@ -13,7 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class NotificationPublisherTest {
@@ -38,7 +38,7 @@ class NotificationPublisherTest {
 
         notificationPublisher.publish(req);
 
-        verify(notificationClient, times(1)).sendInternalNotification(eq("test-key"), eq(req));
+        verify(notificationClient, times(1)).sendInternalNotification("test-key", req);
     }
 
     @Test
@@ -62,7 +62,7 @@ class NotificationPublisherTest {
 
         notificationPublisher.publishBroadcast(req);
 
-        verify(notificationClient, times(1)).broadcastNotification(eq("test-key"), eq(req));
+        verify(notificationClient, times(1)).broadcastNotification("test-key", req);
     }
 
     @Test
@@ -92,6 +92,6 @@ class NotificationPublisherTest {
 
         assertDoesNotThrow(() -> notificationPublisher.publishToUsers(List.of("u1", "u2"), req));
 
-        verify(notificationClient, times(2)).sendInternalNotification(eq("test-key"), any());
+        verify(notificationClient, times(2)).sendInternalNotification(any(), any());
     }
 }

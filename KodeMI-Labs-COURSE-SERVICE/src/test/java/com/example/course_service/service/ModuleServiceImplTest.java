@@ -10,14 +10,13 @@ import com.example.course_service.repository.CourseRepository;
 import com.example.course_service.repository.LessonRepository;
 import com.example.course_service.repository.ModuleRepository;
 import com.example.course_service.service.impl.ModuleServiceImpl;
-import com.example.course_service.service.FileService;
 import com.example.course_service.feign.EnrollmentClient;
 import com.example.course_service.service.notification.NotificationPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Date;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,8 +50,8 @@ class ModuleServiceImplTest {
         course.setCourseId("course-1");
         course.setTitle("Java Masterclass");
         course.setCreatorId("user-1");
-        course.setCreatedAt(new Date());
-        course.setUpdatedAt(new Date());
+        course.setCreatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
+        course.setUpdatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
 
         module = new ModuleEntity();
         module.setModuleId("module-1");
@@ -61,8 +60,8 @@ class ModuleServiceImplTest {
         module.setTitle("Introduction");
         module.setDescription("Module Description");
         module.setOrderIndex(1);
-        module.setCreatedAt(new Date());
-        module.setUpdatedAt(new Date());
+        module.setCreatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
+        module.setUpdatedAt(java.time.Instant.ofEpochMilli(1000000000000L));
     }
 
     // ================= CREATE =================

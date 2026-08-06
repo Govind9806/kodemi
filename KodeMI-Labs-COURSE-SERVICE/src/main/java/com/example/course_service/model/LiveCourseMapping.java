@@ -1,10 +1,11 @@
 package com.example.course_service.model;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.*;
+import com.example.course_service.util.InstantConverter;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -16,8 +17,8 @@ public class LiveCourseMapping {
     private String courseId;
     private String liveSessionId;
     private String recordingUrl;
-    private Date createdAt;
-    private Date updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     @DynamoDBHashKey(attributeName = "Id")
     public String getId() { return id; }
@@ -36,10 +37,12 @@ public class LiveCourseMapping {
     public void setRecordingUrl(String recordingUrl) { this.recordingUrl = recordingUrl; }
 
     @DynamoDBAttribute(attributeName = "createdAt")
-    public Date getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
     @DynamoDBAttribute(attributeName = "updatedAt")
-    public Date getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+    @DynamoDBTypeConverted(converter = InstantConverter.class)
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

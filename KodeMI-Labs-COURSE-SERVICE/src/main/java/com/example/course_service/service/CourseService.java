@@ -33,9 +33,8 @@ public interface CourseService {
     void refreshCourseStats(String courseId);
     List<CourseResponseDTO> getAllCoursesForAdmin();
     List<CourseResponseDTO> getEnrolledCoursesForStudent(String token);
-
     MultipartUploadInitResponse initiateDemoVideoMultipartUpload(String token, MultipartUploadInitRequest request);
     String generateDemoVideoPresignedUrl(String token, String uploadId, String fileKey, int partNumber);
-    CompleteMultipartUploadResponse completeDemoVideoMultipartUpload(String token, CompleteMultipartUploadRequestDTO request);
     String abortDemoVideoMultipartUpload(String token, AbortMultipartUploadRequestDTO request);
+    CompleteMultipartUploadResponse completeDemoVideoMultipartUpload(String token, CompleteMultipartUploadRequestDTO request);
 }

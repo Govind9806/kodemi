@@ -84,10 +84,11 @@ class FileServiceImplTest {
     // ================= MULTIPART UPLOAD =================
 
     @Test
+    @SuppressWarnings("unchecked")
     void initiateMultipartUpload_ReturnsUploadId() {
         CreateMultipartUploadResponse mockResponse = mock(CreateMultipartUploadResponse.class);
         when(mockResponse.uploadId()).thenReturn("upload-123");
-        when(s3Client.createMultipartUpload(any(CreateMultipartUploadRequest.class))).thenReturn(mockResponse);
+        when(s3Client.createMultipartUpload(any(java.util.function.Consumer.class))).thenReturn(mockResponse);
 
         String uploadId = fileService.initiateMultipartUpload("videos/test.mp4");
 
@@ -107,6 +108,7 @@ class FileServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void completeMultipartUpload_CallsS3() {
         MultipartUploadPartETag part = new MultipartUploadPartETag();
         part.setPartNumber(1);
@@ -115,7 +117,7 @@ class FileServiceImplTest {
         CompleteMultipartUploadResponse result =
                 fileService.completeMultipartUpload("key", "upload-123", List.of(part));
 
-        verify(s3Client, times(1)).completeMultipartUpload(any(CompleteMultipartUploadRequest.class));
+        verify(s3Client, times(1)).completeMultipartUpload(any(java.util.function.Consumer.class));
         assertNotNull(result);
         assertEquals("key", result.getVideoKey());
     }
@@ -127,50 +129,56 @@ class FileServiceImplTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void abortMultipartUpload_CallsS3() {
         fileService.abortMultipartUpload("key", "upload-123");
 
-        verify(s3Client, times(1)).abortMultipartUpload(any(AbortMultipartUploadRequest.class));
+        verify(s3Client, times(1)).abortMultipartUpload(any(java.util.function.Consumer.class));
     }
 
     // ================= DELETE =================
 
     @Test
+    @SuppressWarnings("unchecked")
     void deleteFile_CallsS3() {
         fileService.deleteFile("test-key");
 
-        verify(s3Client, times(1)).deleteObject(any(DeleteObjectRequest.class));
+        verify(s3Client, times(1)).deleteObject(any(java.util.function.Consumer.class));
     }
 
     // ================= FILE EXISTS =================
 
     @Test
+    @SuppressWarnings("unchecked")
     void fileExists_ReturnsTrue_WhenFileExists() {
-        when(s3Client.headObject(any(HeadObjectRequest.class))).thenReturn(
+        when(s3Client.headObject(any(java.util.function.Consumer.class))).thenReturn(
                 HeadObjectResponse.builder().build());
 
         assertTrue(fileService.fileExists("test-key"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void fileExists_ReturnsFalse_WhenNotFound() {
-        when(s3Client.headObject(any(HeadObjectRequest.class)))
+        when(s3Client.headObject(any(java.util.function.Consumer.class)))
                 .thenThrow(NoSuchKeyException.builder().build());
 
         assertFalse(fileService.fileExists("test-key"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void fileExists_ReturnsFalse_WhenGenericException() {
-        when(s3Client.headObject(any(HeadObjectRequest.class)))
+        when(s3Client.headObject(any(java.util.function.Consumer.class)))
                 .thenThrow(software.amazon.awssdk.core.exception.SdkClientException.create("Connection error"));
 
         assertFalse(fileService.fileExists("test-key"));
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void deleteFile_S3Throws_LogsError() {
-        when(s3Client.deleteObject(any(DeleteObjectRequest.class)))
+        when(s3Client.deleteObject(any(java.util.function.Consumer.class)))
                 .thenThrow(software.amazon.awssdk.core.exception.SdkClientException.create("S3 error"));
 
         // Should not throw - error is caught and logged
@@ -182,5 +190,37 @@ class FileServiceImplTest {
     @Test
     void getBucketName_ReturnsConfiguredName() {
         assertEquals("test-bucket", fileService.getBucketName());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void initiateMultipartUpload_S3Throws_ThrowsException() {
+        when(s3Client.createMultipartUpload(any(java.util.function.Consumer.class)))
+                .thenThrow(software.amazon.awssdk.core.exception.SdkClientException.create("S3 initiate failed"));
+
+        assertThrows(software.amazon.awssdk.core.exception.SdkClientException.class, () -> fileService.initiateMultipartUpload("videos/test.mp4"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void completeMultipartUpload_S3Throws_ThrowsException() {
+        MultipartUploadPartETag part = new MultipartUploadPartETag();
+        part.setPartNumber(1);
+        part.setETag("etag-1");
+
+        when(s3Client.completeMultipartUpload(any(java.util.function.Consumer.class)))
+                .thenThrow(software.amazon.awssdk.core.exception.SdkClientException.create("S3 complete failed"));
+
+        assertThrows(software.amazon.awssdk.core.exception.SdkClientException.class,
+                () -> fileService.completeMultipartUpload("key", "upload-123", List.of(part)));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void abortMultipartUpload_S3Throws_ThrowsException() {
+        doThrow(software.amazon.awssdk.core.exception.SdkClientException.create("S3 abort failed"))
+                .when(s3Client).abortMultipartUpload(any(java.util.function.Consumer.class));
+
+        assertThrows(software.amazon.awssdk.core.exception.SdkClientException.class, () -> fileService.abortMultipartUpload("key", "upload-123"));
     }
 }

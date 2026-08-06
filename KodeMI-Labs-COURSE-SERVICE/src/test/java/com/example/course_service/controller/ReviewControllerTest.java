@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -56,8 +56,8 @@ class ReviewControllerTest {
                 .reviewText("Excellent course")
                 .isVerified(false)
                 .likes(0)
-                .createdAt(new Date())
-                .updatedAt(new Date())
+                .createdAt(Instant.ofEpochMilli(1000000000000L))
+                .updatedAt(Instant.ofEpochMilli(1000000000000L))
                 .build();
 
         when(reviewService.getReviewById("R101")).thenReturn(dto);
