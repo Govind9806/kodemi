@@ -45,7 +45,7 @@ class TrainerServiceImplExtendedTest {
     private static final String TEST_KEY = "1234567890abcdef"; // valid 16-byte AES key
 
     @BeforeEach
-    void setup() throws Exception {
+    void setup() {
         MockitoAnnotations.openMocks(this);
         repository = mock(TrainerRepository.class);
         authClient = mock(AuthClient.class);

@@ -17,6 +17,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Clock;
@@ -30,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -41,7 +45,7 @@ class LearnerServiceImplTest {
     private LearnerRepository repository;
 
     @Mock
-    private FileServiceImpl fileService; // mock the dependency
+    private FileServiceImpl fileService;
 
     @Mock
     private com.example.user_service.feign.AuthClient authClient;
@@ -182,7 +186,7 @@ class LearnerServiceImplTest {
 
         assertEquals("Updated Name", response.getFullName());
         assertEquals("newKey", learner.getProfilePictureKey());
-        verify(fileService).deleteFile("oldKey"); // deletes the OLD key, not the new one
+        verify(fileService).deleteFile("oldKey");
         verify(fileService).uploadFile("user123", file);
         verify(repository, times(1)).save(learner);
     }
@@ -195,6 +199,42 @@ class LearnerServiceImplTest {
         LearnerResponseDTO response = service.updateProfile("user123", dto, null);
         assertNotNull(response);
         assertEquals("On The Fly User", response.getFullName());
+    }
+
+    @Test
+    void updateProfile_databaseException_throwsUserServiceException() {
+        Learner learner = new Learner();
+        learner.setUserId("user123");
+        when(repository.findByUserId("user123")).thenReturn(learner);
+
+        doThrow(new QueryTimeoutException("Database connection timeout"))
+                .when(repository).save(any(Learner.class));
+
+        LearnerRequestDTO dto = new LearnerRequestDTO();
+        dto.setFullName("Updated Name");
+
+        // FIX: Assert UserServiceException instead of UserException
+        assertThrows(com.example.user_service.exception.UserServiceException.class,
+                () -> service.updateProfile("user123", dto, null));
+    }
+
+    @Test
+    void updateProfile_unexpectedException_throwsUserServiceException() {
+        Learner learner = new Learner();
+        learner.setUserId("user123");
+        learner.setProfilePictureKey("oldKey");
+        when(repository.findByUserId("user123")).thenReturn(learner);
+
+        MultipartFile file = mock(MultipartFile.class);
+        when(fileService.uploadFile("user123", file))
+                .thenThrow(new RuntimeException("Unexpected file upload error"));
+
+        LearnerRequestDTO dto = new LearnerRequestDTO();
+        dto.setFullName("Updated Name");
+
+        // FIX: Assert UserServiceException here as well
+        assertThrows(com.example.user_service.exception.UserServiceException.class,
+                () -> service.updateProfile("user123", dto, file));
     }
 
     // ========== deleteProfile ==========
@@ -227,7 +267,7 @@ class LearnerServiceImplTest {
     @Test
     void followTrainer_success() {
         service.followTrainer("user123", "trainer456");
-        verify(followRepository, times(1)).follow(org.mockito.ArgumentMatchers.any());
+        verify(followRepository, times(1)).follow(any());
     }
 
     @Test

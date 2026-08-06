@@ -85,23 +85,6 @@ class TrainerServiceImplTest {
         return dto;
     }
 
-    private TrainerUpdateRequestDTO buildUpdateRequest() {
-        TrainerUpdateRequestDTO dto = new TrainerUpdateRequestDTO();
-        dto.setDesignation("Lead Trainer");
-        dto.setPhoneNumber("9123456780");
-        dto.setOfficeName("TechCorp");
-        dto.setOfficeAddress("Hyderabad");
-        dto.setTrainingSpecialization("Spring Boot");
-        dto.setYearsOfExperience(7);
-        dto.setQualification("M.Tech");
-        dto.setPanNumber("ABCDE1234F");
-        dto.setAccountNumber("1234567890");
-        dto.setIfscCode("HDFC0001234");
-        dto.setBankName("HDFC");
-        dto.setBranchName("Hyderabad");
-        return dto;
-    }
-
     private Trainer buildTrainer() {
         Trainer trainer = new Trainer();
         trainer.setUserId(USER_ID);
