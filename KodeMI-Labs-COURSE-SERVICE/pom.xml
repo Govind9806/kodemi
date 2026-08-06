@@ -37,6 +37,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aspectj</artifactId>
@@ -203,6 +204,7 @@
 				<artifactId>dependency-check-maven</artifactId>
 				<version>10.0.4</version>
 				<configuration>
+                    <nvdApiKey>1f4e5b40-6e51-4b07-bff2-d97e062de1ed</nvdApiKey>
 					<failBuildOnCVSS>8</failBuildOnCVSS>
 					<formats>
 						<format>HTML</format>
