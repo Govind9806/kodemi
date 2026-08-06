@@ -8,5 +8,6 @@ public enum Role {
     ADMIN,
     USER_ADMIN,
     COURSE_ADMIN,
-    GAME_ADMIN
+    GAME_ADMIN,
+    CONTENT_ADMIN
 }
